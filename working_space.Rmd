@@ -1,0 +1,20 @@
+
+```{r}
+historical_fp_data %>% 
+    filter(
+        org_unit == "Kenya",
+        analytic_name == "COCs"
+    )
+```
+
+
+```{r}
+anomalies_sample <- historical_fp_data %>% 
+    unite("id", analytic_name, org_unit, method,  sep = "__") %>% 
+    filter(id == "COCs__Kenya__Service") %>% 
+    anomalize(period, value) 
+
+anomalies_sample %>% 
+    plot_anomalies_cleaned(period)
+```
+
