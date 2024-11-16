@@ -18,3 +18,96 @@ anomalies_sample %>%
     plot_anomalies_cleaned(period)
 ```
 
+
+
+```{r}
+sample_prophet_model_output_data <- read_rds("data/sample_prophet_model_output_data.rds")
+sample_prophet_model_input_data <- read_rds("data/sample_prophet_model_input_data.rds")
+```
+```{r}
+combined_input_output_data <- sample_prophet_model_input_data %>% 
+    bind_rows(
+        sample_prophet_model_output_data %>% select(ds, yhat_lower, yhat_upper, yhat)
+    ) %>% 
+    mutate(ds = as.Date(ds))
+    pivot_longer(cols = contains("y"), names_to = "metric", values_to = "value") 
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+combined_input_output_data %>%
+    summarise(across(2:last_col(),  ~sum(.x, na.rm = TRUE)))
+    
+```
+
+
+
+```{r}
+test_orgs <- extract_metadata_units("mikonya", "Kenya2030")
+
+con_elements <- read_rds("data/fp_consumption_data_element_ids.rds")
+ser_elements <- read_rds("data/fp_service_data_element_ids.rds")
+county_and_country_ids <- read_rds("data/level_1_2_ids.rds")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

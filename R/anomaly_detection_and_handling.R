@@ -1,4 +1,4 @@
-anomaly_detection_and_handling_ui <- function(id) {
+anomaly_detection_and_handling_page_ui <- function(id) {
   ns <- NS(id)
   tagList(
     layout_columns(
@@ -17,7 +17,7 @@ anomaly_detection_and_handling_ui <- function(id) {
   )
 }
 
-anomaly_detection_and_handling_server <- function(id, data_to_plot) {
+anomaly_detection_and_handling_page_server <- function(id, data_to_plot) {
   moduleServer(id, function(input, output, session) {
     filtered_data <- filter_historical_data(data_to_plot, input)
 

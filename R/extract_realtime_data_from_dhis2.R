@@ -1,0 +1,173 @@
+extract_from_khis_page_ui <- function(id) {
+  ns <- NS(id)
+
+  tagList(
+    layout_columns(
+      col_widths = c(4, 8),
+      card(
+        full_screen = TRUE,
+        card_header("Filters"),
+        actionButton(
+          ns("click_here_to_show_khis_login_modal"),
+          label = "Login here",
+          icon = icon("location-arrow"),
+          class = "btn-primary",
+          style = "width: 100%;"
+        ),
+        pickerInput(
+            ns("fp_consumption_data_ids"),
+            label = "Choose Consumption Data",
+            choices = fp_consumption_747A_ids,
+            selected = fp_consumption_747A_ids[1],
+            width = "100%",
+            multiple = TRUE,
+            options = pickerOptions(actionsBox = TRUE, `live-search` = TRUE)
+        ),
+        pickerInput(
+            ns("fp_service_data_ids"),
+            label = "Choose Service Data",
+            choices = fp_service_711_ids,
+            selected = fp_service_711_ids[1],
+            multiple = TRUE,
+            width = "100%",
+            options = pickerOptions(actionsBox = TRUE, `live-search` = TRUE)
+        ),
+        pickerInput(
+            ns("his_org_unit"),
+            label = "Choose County or Country",
+            choices = counties_and_country_ids,
+            selected = "HfVjCurKxh2",
+            multiple = TRUE,
+            width = "100%",
+            options = pickerOptions(actionsBox = TRUE, `live-search` = TRUE)
+        ),
+        dateRangeInput(
+            ns("his_date_range"),
+            label = "Period",
+            start = as.Date("2024-01-01"),
+            end = today(),
+            min = as.Date("2020-01-01"),
+            max = today(),
+            width = "100%"
+        ),
+        disabled(
+            actionButton(
+                ns("click_here_to_extract_selected_data_from_khis"),
+                label = "Extract",
+                icon = icon("cloud-arrow-down"),
+                class = "btn-primary",
+                style = "width: 100%;"
+            )
+        ),
+        pickerInput(
+            ns("his_output_scheme"),
+            label = "Select Your Output Scheme",
+            choices = c("NAME", "UID", "CODE"),
+            selected = "NAME",
+            multiple = FALSE,
+            width = "100%",
+            options = pickerOptions(`live-search` = TRUE)
+        )
+      ),
+      card(
+        full_screen = TRUE,
+        card_header("Extraction Results"),
+        DTOutput(ns("extraction_results_table"), height = 400)
+      )
+    )
+  )
+}
+
+
+extract_from_khis_page_server <- function(id) {
+  moduleServer(id, function(input, output, session) {
+    # get namespace
+    ns <- session$ns
+    dhis_connection <- reactiveVal(NULL)
+
+    # observe trigger button
+    observeEvent(input$click_here_to_show_khis_login_modal, {
+      showModal(modalDialog(
+        title = div(tags$h3("Access DHIS2 directly", style = heading_style)),
+        textInput(
+          ns("his_base_url"),
+          label = "Enter a valid DHIS2 instance/url",
+          value = "https://hiskenya.org", placeholder = "Example: https://hiskenya.org", width = "100%"
+        ),
+        textInput(ns("his_user"), label = "Enter your DHIS2 username", value = "mikonya", width = "100%"), # --- remove value
+        passwordInput(ns("his_pass"), "Enter your DHIS2 password", value = "Kenya2030", width = "100%"),
+        actionButton(ns("click_here_to_login_to_dhis2"), "Click here to login", class = "btn-primary", style = "width: 100%;"),
+        easyClose = TRUE, size = "m", footer = modalButton("Close", icon = icon("arrow-right-to-bracket"))
+      ))
+    })
+
+    # login a user to DHIS
+    observeEvent(input$click_here_to_login_to_dhis2, {
+      base_url <- input$his_base_url
+      username <- input$his_user
+      password <- input$his_pass
+      req(base_url)
+      req(username)
+      req(password)
+
+      login_successful <- login_to_dhis2_within_shiny(base_url, username, password)
+      removeModal()
+
+      if (login_successful) {
+        updateActionButton(session, "click_here_to_show_khis_login_modal", label = "Already logged in! 🚀🚀")
+        disable("click_here_to_show_khis_login_modal")
+        enable("click_here_to_extract_selected_data_from_khis")
+
+
+        con <- Dhis2r$new(base_url, username, password)
+        dhis_connection(con)
+      }
+    })
+
+
+    observeEvent(input$click_here_to_extract_selected_data_from_khis, {
+      # format date range from user interface
+      start_date <- format(as.Date(input$his_date_range[1]), "%Y%m")
+      end_date <- format(as.Date(input$his_date_range[2]), "%Y%m")
+      period_formatted <- c(start_date:end_date)
+
+      extraction_data_from_dhis2 <- function() {
+        tryCatch(
+          expr = {
+            # extract
+            response <- dhis_connection()$get_analytics(
+              analytic = c(input$fp_consumption_data_ids, input$fp_service_data_ids),
+              org_unit = c(input$his_org_unit),
+              period = period_formatted,
+              output_scheme = input$his_output_scheme
+            )
+
+            if (nrow(response) == 0) {
+                response <- tibble(
+                    analytic = character(), org_unit = character(), period = character(), value = numeric()
+                )
+                return(response)
+            }
+            return(response)
+          },
+          error = function(e) {
+            shinyalert("Failed", e$message, "error", closeOnClickOutside = TRUE)
+            return(NULL)
+          }
+        )
+      }
+
+      extraction_results <- extraction_data_from_dhis2()
+
+      if (!is.null(extraction_results)) {
+        output$extraction_results_table <- renderDT({
+          extraction_results %>% render_data_with_dt()
+        })
+      } else {
+        output$extraction_results_table <- renderDT({
+          NULL
+        })
+      }
+    })
+  })
+}
