@@ -62,7 +62,7 @@ extract_from_khis_page_ui <- function(id) {
         pickerInput(
             ns("his_output_scheme"),
             label = "Select Your Output Scheme",
-            choices = c("NAME", "UID", "CODE"),
+            choices = c("NAME", "UID"),
             selected = "NAME",
             multiple = FALSE,
             width = "100%",
@@ -133,9 +133,15 @@ extract_from_khis_page_server <- function(id) {
 
     observeEvent(input$click_here_to_extract_selected_data_from_khis, {
       # format date range from user interface
-      start_date <- format(as.Date(input$his_date_range[1]), "%Y%m")
-      end_date <- format(as.Date(input$his_date_range[2]), "%Y%m")
-      period_formatted <- c(start_date:end_date)
+      start_date <- input$his_date_range[1]
+      end_date <- input$his_date_range[2]
+
+      periods_vector <- seq(from = as.Date(start_date), to = as.Date(end_date), by = "month")
+      period_formatted <- format(periods_vector, "%Y%m")
+
+      sample_df_if_query_fails <- tibble::tibble(
+        analytic = character(), org_unit = character(), period = character(), value = numeric()
+      )
 
       extraction_data_from_dhis2 <- function() {
         tryCatch(
@@ -144,21 +150,18 @@ extract_from_khis_page_server <- function(id) {
             response <- dhis_connection()$get_analytics(
               analytic = c(input$fp_consumption_data_ids, input$fp_service_data_ids),
               org_unit = c(input$his_org_unit),
-              period = period_formatted,
+              period = c(period_formatted),
               output_scheme = input$his_output_scheme
             )
 
             if (nrow(response) == 0) {
-                response <- tibble(
-                    analytic = character(), org_unit = character(), period = character(), value = numeric()
-                )
-                return(response)
+                return(sample_df_if_query_fails)
             }
             return(response)
           },
           error = function(e) {
-            shinyalert("Failed", e$message, "error", closeOnClickOutside = TRUE)
-            return(NULL)
+            shinyalert("Error during extraction", e$message, "error", closeOnClickOutside = TRUE)
+            return(sample_df_if_query_fails)
           }
         )
       }

@@ -53,9 +53,9 @@ combined_input_output_data |>
 ```{r}
 test_orgs <- extract_metadata_units("mikonya", "Kenya2030")
 
-con_elements <- read_rds("data/fp_consumption_data_element_ids.rds")
-ser_elements <- read_rds("data/fp_service_data_element_ids.rds")
-county_and_country_ids <- read_rds("data/level_1_2_ids.rds")
+con_elements <- readRDS("data/fp_consumption_data_element_ids.rds")
+ser_elements <- readRDS("data/fp_service_data_element_ids.rds")
+county_and_country_ids <- readRDS("data/level_1_2_ids.rds")
 ```
 
 
@@ -64,10 +64,35 @@ county_and_country_ids <- read_rds("data/level_1_2_ids.rds")
 ```{r}
 res <- GET("https://hiskenya.org/", authenticate("mikonya", "Kenya20dff30"))
 
+b_url <- "https://hiskenya.org/"
+```
+
+
+```{r}
+# Generate a sequence of dates from January 2020 to January 2024
+dates <- seq(from = as.Date("2024-01-01"), to = as.Date("2024-05-01"), by = "month")
+
+# Format the dates as "YYYYMM"
+formatted_dates <- format(dates, "%Y%m")
+
+# Display the result
+formatted_dates
 
 ```
 
 
+```{r}
+his_con <- Dhis2r$new(base_url = b_url, username = "mikonya", password =  "Kenya2030")
+
+response <- his_con$get_analytics(
+    analytic = c(con_elements[1], con_elements[2]),
+    org_unit = county_and_country_ids[1],
+    period = c(formatted_dates),
+    output_scheme = "NAME"
+)
+
+class(con_elements)
+```
 
 
 

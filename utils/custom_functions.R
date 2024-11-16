@@ -16,7 +16,9 @@ make_ui_inputs <- function(ns, show_both_consumption_and_service = TRUE) {
       ns("forecasting_approach_for_service_consumption_comparison"),
       label = "Choose Method",
       choices = forecasting_approaches,
-      selected = forecasting_approaches, multiple = show_both_consumption_and_service,
+      selected = forecasting_approaches,
+      multiple = show_both_consumption_and_service,
+      width = "100%",
       options = list(`live-search` = TRUE)
     ),
     dateRangeInput(
@@ -26,7 +28,8 @@ make_ui_inputs <- function(ns, show_both_consumption_and_service = TRUE) {
       min = "2020-01-01",
       max = today(),
       format = "mm/dd/yy",
-      separator = " - "
+      separator = " - ",
+      width = "100%"
     )
   )
   return(ui_inputs)
