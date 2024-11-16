@@ -52,94 +52,77 @@ live_prophet_forecasting_model_page_ui <- function(id) {
 # Module Server
 live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
   moduleServer(id, function(input, output, session) {
-    filtered_data <- filtered_data <- reactive({
+    prophet_input_data <- eventReactive(input$run_forecast, {
       data_to_forecast |>
         filter(
           org_unit == input$org_unit_for_service_consumption_comparison,
           analytic_name == input$analytic_for_service_consumption_comparison,
           method %in% c(input$forecasting_approach_for_service_consumption_comparison)
         ) |>
-        # arrange data frame in ascending order of date
-        arrange(period) |>
-        # deselect unnecessary columns
-        select(-c(org_unit, outlier_size, year)) |>
-        # round median value to nearest whole number
-        mutate(median_value = round(median_value))
-    })
-
-    data <- eventReactive(input$run_forecast, {
-      filtered_data() |>
         transmute(ds = period, y = round(value)) |>
         arrange(ds)
     })
 
-    forecast_data <- eventReactive(input$run_forecast, {
-      if (nrow(data()) >= 2) {
-        fit <- prophet(
-          data(),
-          growth = input$growth, seasonality.mode = "additive",
-          yearly.seasonality = input$seasonality, interval.width = 0.95
-        )
-        future <- make_future_dataframe(fit, periods = input$horizon, freq = "1 month", include_history = T)
-        last_date <- tail(data()$ds, n = 1)
-        future <- future |> filter(ds > last_date)
-        forecast <- predict(fit, future)
-
-        return(forecast)
-      } else {
-        NULL
-      }
+    prophet_output_data <- eventReactive(input$run_forecast, {
+      model_results <- suppressMessages(
+        expr = {
+          forecast_with_prophet(
+            data_to_forecast = prophet_input_data(),
+            horizon = input$horizon,
+            growth_type = input$growth,
+            show_seasonality = input$seasonality
+          )
+        }
+      )
+      return(model_results)
     })
 
     observeEvent(input$run_forecast, {
-      # This function renders a plotly chart of the actual data and the forecast.
-      output$forecast_plot <- renderPlotly({
-        if (!is.null(forecast_data())) {
+      print(glue("Type of model results: {prophet_output_data() |> class()}"))
+
+      if (class(prophet_output_data()) == "character") {
+
+        shinyalert("Failed", prophet_output_data(), "error", closeOnClickOutside = TRUE)
+        output$forecast_plot <- renderPlotly({NULL})
+        output$monthly_forecast <- renderDT({NULL})
+        output$yhat <- renderText({NULL})
+        output$yhat_lower <- renderText({NULL})
+        output$yhat_upper <- renderText({NULL})
+
+      } else {
+        output$forecast_plot <- renderPlotly({
           plot_ly() |>
             add_trace(
-              data = data(), x = ~ds, y = ~y, type = "scatter",
+              data = prophet_input_data(), x = ~ds, y = ~y, type = "scatter",
               mode = "lines+markers", name = "Actual Data",
               line = list(color = "#E73846"), marker = list(color = "#E73846", size = 5)
             ) |>
             add_trace(
-              data = forecast_data(), x = ~ds, y = ~yhat,
+              data = prophet_output_data(), x = ~ds, y = ~yhat,
               type = "scatter", mode = "lines+markers", line = list(color = "#1C3557"),
               marker = list(color = "#1C3557", size = 5), name = "Estimate"
             ) |>
             add_ribbons(
-              data = forecast_data(), x = ~ds, ymin = ~yhat_lower, ymax = ~yhat_upper,
+              data = prophet_output_data(), x = ~ds, ymin = ~yhat_lower, ymax = ~yhat_upper,
               fillcolor = "gray90", line = list(color = "transparent"), name = "Forecast Interval"
             ) |>
             layout(
               title = str_c(input$org_unit_for_service_consumption_comparison, input$analytic_for_service_consumption_comparison, "Forecast Plot", sep = " "),
               xaxis = list(title = "Date"), yaxis = list(title = "Value"), showlegend = FALSE
             )
-        }
-      })
+        })
 
-      forecast_table_data <- reactive({
-        forecast_data() |>
+        forecast_table_data <- prophet_output_data() |>
           transmute(
             analytic_name = input$analytic_for_service_consumption_comparison,
             org_unit = input$org_unit_for_service_consumption_comparison,
-            Date = as.Date(ds), Lower = round(yhat_lower), Estimate = round(yhat), Upper = round(yhat_upper)
+            Date = as.Date(ds),
+            Lower = round(yhat_lower),
+            Estimate = round(yhat),
+            Upper = round(yhat_upper)
           )
-      })
 
-      output$monthly_forecast <- renderDT({
-        if (!is.null(forecast_data())) {
-          forecast_table_data() |>
-            datatable(
-              rownames = F, extensions = "Buttons", editable = TRUE, fillContainer = T,
-              options = list(dom = "Brt", buttons = c("excel", "pdf", "copy"), pageLength = 40)
-            ) |>
-            DT::formatCurrency(4:6, currency = "", digits = 0)
-        }
-      })
-
-      observe({
-        forecast_table_data()
-        summaries <- forecast_table_data() |> summarize(across(4:6, ~ sum(.x, na.rm = TRUE)))
+        summaries <- forecast_table_data |> summarize(across(4:6, ~ sum(.x, na.rm = TRUE)))
 
         output$yhat <- renderText({
           summaries |>
@@ -158,7 +141,13 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
             pull(Upper) |>
             format(big.mark = ", ")
         })
-      })
+
+        output$monthly_forecast <- renderDT({
+          forecast_table_data |>
+            render_data_with_dt() |>
+            DT::formatCurrency(4:6, currency = "", digits = 0)
+        })
+      }
 
       # end of observer
     })

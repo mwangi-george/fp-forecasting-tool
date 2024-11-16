@@ -21,16 +21,29 @@ anomalies_sample |>
 
 
 ```{r}
-sample_prophet_model_output_data <- read_rds("data/sample_prophet_model_output_data.rds")
-sample_prophet_model_input_data <- read_rds("data/sample_prophet_model_input_data.rds")
+sample_prophet_model_output_data <- readRDS("data/sample_prophet_model_output_data.rds")
+sample_prophet_model_input_data <- readRDS("data/sample_prophet_model_input_data.rds")
 ```
+
+
 ```{r}
 combined_input_output_data <- sample_prophet_model_input_data |> 
     bind_rows(
         sample_prophet_model_output_data |> select(ds, yhat_lower, yhat_upper, yhat)
-    ) |> 
-    mutate(ds = as.Date(ds))
+    ) |>
     pivot_longer(cols = contains("y"), names_to = "metric", values_to = "value") 
+
+!"ds" %in% colnames(combined_input_output_data) & !"y" %in% colnames(combined_input_output_data)
+```
+
+```{r}
+suppressMessages(
+    combined_input_output_data |> 
+    filter(!is.na(y)) |> 
+    select(ds, y) |> 
+    head(1) |> 
+    forecast_with_prophet(12, "flat", T)
+)
 
 ```
 

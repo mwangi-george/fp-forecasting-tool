@@ -116,27 +116,65 @@ login_to_dhis2_within_shiny <- function(base_url, username, password) {
 }
 
 
-make_dhis2r_connection <- memoise(
-  function(his_base_url, user, pass) {
-    # custom dhis2 connection using dhis2r package
-    connection_to_his <- Dhis2r$new(base_url = his_base_url, username = user, password = pass)
-    return(connection_to_his)
-  },
-  # result automatically time out after 15 minutes
-  cache = cachem::cache_mem(max_age = 60 * 15)
-)
-
-
-# Customized Data extraction function
-extract_data_from_his <- memoise(
-  function(con, analytic, org_unit, date_range, output_format = "NAME") {
-    response <- con$get_analytics(
-      analytic = c(analytic), org_unit = c(org_unit),
-      period = date_range, output_scheme = output_format
-      )
+run_anomaly_detection <- memoise(
+  function(data_to_anomalize) {
+    tryCatch(
+      expr = {
+        print("Running anomaly detection...")
+        anomalized_data <- suppressMessages(
+          expr = {
+            data_to_anomalize |> anomalize(period, value)
+          }
+        )
+        return(anomalized_data)
+      },
+      error = function(e) {
+        print(e$message)
+        return("The selected series is not periodic or has less than two periods. Please review it's trend in the Trend Analysis tab.")
+      }
+    )
   }
 )
 
+
+forecast_with_prophet <- memoise(
+  function(data_to_forecast, horizon, growth_type, show_seasonality) {
+    if ((data_to_forecast |> nrow()) > 2) {
+      tryCatch(
+        expr = {
+          print("Building your forecast with prophet...")
+
+          model_results <- suppressWarnings(
+            expr = {
+              fit <- prophet(
+                df = data_to_forecast,
+                growth = growth_type,
+                seasonality.mode = "additive",
+                yearly.seasonality = show_seasonality,
+                interval.width = 0.95
+              )
+
+              future <- make_future_dataframe(fit, periods = horizon, freq = "1 month", include_history = T)
+
+              last_date <- tail(data_to_forecast$ds, n = 1)
+
+              future <- future |> filter(ds > last_date)
+              forecast <- predict(fit, future)
+            }
+          )
+
+          return(model_results)
+        },
+        error = function(e) {
+          print("Error occurred while building forecast...")
+          return(e$message)
+        }
+      )
+    } else {
+      return("Series has insufficient data to build a forecast...")
+    }
+  }
+)
 
 
 render_data_with_dt <- function(dt_object) {
@@ -149,5 +187,3 @@ render_data_with_dt <- function(dt_object) {
       options = list(dom = "Brt", buttons = c("excel", "pdf", "copy"), pageLength = 40)
     )
 }
-
-

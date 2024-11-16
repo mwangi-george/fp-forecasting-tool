@@ -22,22 +22,8 @@ anomaly_detection_and_handling_page_server <- function(id, data_to_plot) {
     filtered_data <- filter_historical_data(data_to_plot, input)
 
 
-    perform_anomalization <- function() {
-      tryCatch(
-        expr = {
-          anomalized_data <- filtered_data() |> anomalize(period, value)
-          return(anomalized_data)
-        },
-        error = function(e) {
-          print(e$message)
-          return("The selected series is not periodic or has less than two periods. Please review it's trend in the Trend Analysis tab.")
-        }
-      )
-    }
-
-
     observe({
-      anomalization_results <- perform_anomalization()
+      anomalization_results <- run_anomaly_detection(data_to_anomalize = filtered_data())
       plot_title <- glue("Showing data for {input$analytic_for_service_consumption_comparison} -- {input$org_unit_for_service_consumption_comparison}")
 
       if ("data.frame" %in% c(class(anomalization_results))) {
