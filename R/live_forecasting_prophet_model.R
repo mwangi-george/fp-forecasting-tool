@@ -64,16 +64,21 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
     })
 
     prophet_output_data <- eventReactive(input$run_forecast, {
-      model_results <- suppressMessages(
+      withProgress(
         expr = {
-          forecast_with_prophet(
-            data_to_forecast = prophet_input_data(),
-            horizon = input$horizon,
-            growth_type = input$growth,
-            show_seasonality = input$seasonality
+          model_results <- suppressMessages(
+            expr = {
+              forecast_with_prophet(
+                data_to_forecast = prophet_input_data(),
+                horizon = input$horizon,
+                growth_type = input$growth,
+                show_seasonality = input$seasonality
+              )
+            }
           )
-        }
+        }, min = 0, max = 10, value = 9, message = "Processing..."
       )
+
       return(model_results)
     })
 
