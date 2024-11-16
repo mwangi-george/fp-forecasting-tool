@@ -10,8 +10,8 @@ anomaly_detection_and_handling_page_ui <- function(id) {
       ),
       navset_card_underline(
         title = "Anomaly Plots",
-        nav_panel("Anomaly Detection", plotlyOutput(ns("anomalies_plot")) %>% withSpinner(type = 4, size = 0.5)),
-        nav_panel("Anomaly Handling", plotlyOutput(ns("cleaned_anomaly_plot")) %>% withSpinner(type = 4, size = 0.5))
+        nav_panel("Anomaly Detection", plotlyOutput(ns("anomalies_plot")) |> withSpinner(type = 4, size = 0.5)),
+        nav_panel("Anomaly Handling", plotlyOutput(ns("cleaned_anomaly_plot")) |> withSpinner(type = 4, size = 0.5))
       )
     )
   )
@@ -25,7 +25,7 @@ anomaly_detection_and_handling_page_server <- function(id, data_to_plot) {
     perform_anomalization <- function() {
       tryCatch(
         expr = {
-          anomalized_data <- filtered_data() %>% anomalize(period, value)
+          anomalized_data <- filtered_data() |> anomalize(period, value)
           return(anomalized_data)
         },
         error = function(e) {
@@ -42,11 +42,11 @@ anomaly_detection_and_handling_page_server <- function(id, data_to_plot) {
 
       if ("data.frame" %in% c(class(anomalization_results))) {
         output$anomalies_plot <- renderPlotly({
-          anomalization_results %>%
+          anomalization_results |>
             plot_anomalies(period, .title = plot_title, .x_lab = "Date", .y_lab = "Value")
         })
         output$cleaned_anomaly_plot <- renderPlotly({
-          anomalization_results %>%
+          anomalization_results |>
             plot_anomalies_cleaned(period, .title = plot_title, .x_lab = "Date", .y_lab = "Value")
         })
       } else {

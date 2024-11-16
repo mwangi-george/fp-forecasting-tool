@@ -47,17 +47,17 @@ add_comma_sep_to_y_values <- function() {
 
 filter_historical_data <- function(historical_data, input) {
   filtered_data <- reactive({
-    historical_data %>%
+    historical_data |>
       filter(
         org_unit == input$org_unit_for_service_consumption_comparison,
         analytic_name == input$analytic_for_service_consumption_comparison,
-        period %>% between(input$date_range_for_service_consumption_comparison[1], input$date_range_for_service_consumption_comparison[2]),
+        period |> between(input$date_range_for_service_consumption_comparison[1], input$date_range_for_service_consumption_comparison[2]),
         method %in% c(input$forecasting_approach_for_service_consumption_comparison)
-      ) %>%
+      ) |>
       # arrange data frame in ascending order of date
-      arrange(period) %>%
+      arrange(period) |>
       # deselect unnecessary columns
-      select(-c(org_unit, outlier_size, year)) %>%
+      select(-c(org_unit, outlier_size, year)) |>
       # round median value to nearest whole number
       mutate(median_value = round(median_value))
   })
@@ -68,7 +68,7 @@ memoised_login <- memoise(
   function(url, username, password) {
     login <- httr::GET(url, authenticate(username, password))
 
-    print(login %>% status_code())
+    print(login |> status_code())
     return(login)
   },
   # result automatically time out after 15 minutes
@@ -137,7 +137,7 @@ extract_data_from_his <- memoise(
 
 
 render_data_with_dt <- function(dt_object) {
-  dt_object %>%
+  dt_object |>
     datatable(
       rownames = F,
       extensions = "Buttons",

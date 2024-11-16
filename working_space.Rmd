@@ -1,6 +1,6 @@
 
 ```{r}
-historical_fp_data %>% 
+historical_fp_data |> 
     filter(
         org_unit == "Kenya",
         analytic_name == "COCs"
@@ -9,12 +9,12 @@ historical_fp_data %>%
 
 
 ```{r}
-anomalies_sample <- historical_fp_data %>% 
-    unite("id", analytic_name, org_unit, method,  sep = "__") %>% 
-    filter(id == "COCs__Kenya__Service") %>% 
+anomalies_sample <- historical_fp_data |> 
+    unite("id", analytic_name, org_unit, method,  sep = "__") |> 
+    filter(id == "COCs__Kenya__Service") |> 
     anomalize(period, value) 
 
-anomalies_sample %>% 
+anomalies_sample |> 
     plot_anomalies_cleaned(period)
 ```
 
@@ -25,10 +25,10 @@ sample_prophet_model_output_data <- read_rds("data/sample_prophet_model_output_d
 sample_prophet_model_input_data <- read_rds("data/sample_prophet_model_input_data.rds")
 ```
 ```{r}
-combined_input_output_data <- sample_prophet_model_input_data %>% 
+combined_input_output_data <- sample_prophet_model_input_data |> 
     bind_rows(
-        sample_prophet_model_output_data %>% select(ds, yhat_lower, yhat_upper, yhat)
-    ) %>% 
+        sample_prophet_model_output_data |> select(ds, yhat_lower, yhat_upper, yhat)
+    ) |> 
     mutate(ds = as.Date(ds))
     pivot_longer(cols = contains("y"), names_to = "metric", values_to = "value") 
 
@@ -43,7 +43,7 @@ combined_input_output_data <- sample_prophet_model_input_data %>%
 
 
 ```{r}
-combined_input_output_data %>%
+combined_input_output_data |>
     summarise(across(2:last_col(),  ~sum(.x, na.rm = TRUE)))
     
 ```
@@ -61,6 +61,11 @@ county_and_country_ids <- read_rds("data/level_1_2_ids.rds")
 
 
 
+```{r}
+res <- GET("https://hiskenya.org/", authenticate("mikonya", "Kenya20dff30"))
+
+
+```
 
 
 

@@ -94,10 +94,16 @@ extract_from_khis_page_server <- function(id) {
           label = "Enter a valid DHIS2 instance/url",
           value = "https://hiskenya.org", placeholder = "Example: https://hiskenya.org", width = "100%"
         ),
-        textInput(ns("his_user"), label = "Enter your DHIS2 username", value = "mikonya", width = "100%"), # --- remove value
-        passwordInput(ns("his_pass"), "Enter your DHIS2 password", value = "Kenya2030", width = "100%"),
+        textInput(
+          ns("his_user"),
+          label = "Enter your DHIS2 username",
+          value = "",
+          placeholder = "your_username",
+          width = "100%"
+          ),
+        passwordInput(ns("his_pass"), "Enter your DHIS2 password", value = "", width = "100%", placeholder = "your_password"),
         actionButton(ns("click_here_to_login_to_dhis2"), "Click here to login", class = "btn-primary", style = "width: 100%;"),
-        easyClose = TRUE, size = "m", footer = modalButton("Close", icon = icon("arrow-right-to-bracket"))
+        easyClose = TRUE, size = "m", footer = NULL
       ))
     })
 
@@ -161,7 +167,7 @@ extract_from_khis_page_server <- function(id) {
 
       if (!is.null(extraction_results)) {
         output$extraction_results_table <- renderDT({
-          extraction_results %>% render_data_with_dt()
+          extraction_results |> render_data_with_dt()
         })
       } else {
         output$extraction_results_table <- renderDT({

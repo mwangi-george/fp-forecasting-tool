@@ -1,0 +1,13 @@
+# Project Name
+FP-Quantification.Rproj
+
+# Experimentation file
+working_space.Rmd
+
+# git file
+.gitignore
+
+
+# testing datasets
+data/sample_prophet_model_input_data.rds
+data/sample_prophet_model_output_data.rds
