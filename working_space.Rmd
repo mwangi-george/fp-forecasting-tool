@@ -109,6 +109,13 @@ class(con_elements)
 
 
 
+```{r}
+forecast_results |> 
+    filter(
+        analytic_name == "2 Rod", org_unit == "Kenya"
+    ) |>
+    retrieve_model_info(fp_method = "Consumption")
+```
 
 
 

@@ -1,4 +1,4 @@
-make_ui_inputs <- function(ns, show_both_consumption_and_service = TRUE) {
+make_ui_inputs <- function(ns, show_both_consumption_and_service = TRUE, date_range_end_date = today()) {
   ui_inputs <- tagList(
     pickerInput(
       ns("org_unit_for_service_consumption_comparison"),
@@ -24,9 +24,9 @@ make_ui_inputs <- function(ns, show_both_consumption_and_service = TRUE) {
     dateRangeInput(
       ns("date_range_for_service_consumption_comparison"), "Date range:",
       start = "2020-01-01",
-      end = today(),
+      end = date_range_end_date,
       min = "2020-01-01",
-      max = today(),
+      max = date_range_end_date,
       format = "mm/dd/yy",
       separator = " - ",
       width = "100%"
@@ -187,3 +187,60 @@ render_data_with_dt <- function(dt_object) {
       options = list(dom = "Brt", buttons = c("excel", "pdf", "copy"), pageLength = 40)
     )
 }
+
+read_forecasts_data_from_drive <- function() {
+  path <- "https://docs.google.com/spreadsheets/d/14h3_V3UZS8HrS5jjmN_SzjBjXwAvEtyKR7IQmTIioj8/"
+  tryCatch(
+    expr = {
+      print("Importing forecast from drive...")
+      ss <- googledrive::drive_get(path)
+      forecasts <- googlesheets4::read_sheet(ss, sheet = "master")
+
+      print("Saving data to disk...")
+      saveRDS(forecasts, here::here("data/final_forecasts_drive.rds"))
+    },
+    error = function(e) {
+      print(e$message)
+    }
+  )
+}
+
+
+retrieve_model_info <- function(dataset, fp_method) {
+  tryCatch(
+    expr = {
+      model_data <- dataset |>
+        filter(.key == "prediction", method == fp_method)
+
+      if (model_data |> nrow() > 0) {
+        model_desc <- model_data |> distinct(.model_desc) |>  pull(.model_desc)
+        return(model_desc)
+      } else {
+        return("No data")
+      }
+    },
+    error = function(e) {
+      print(e$message)
+    }
+  )
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
