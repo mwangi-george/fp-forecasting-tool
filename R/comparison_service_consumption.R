@@ -4,14 +4,14 @@ comparison_service_consumption_page_ui <- function(id) {
     layout_columns(
       col_widths = c(3, 9),
       card(
-        full_screen = TRUE,
+        full_screen = FALSE,
         card_header("Filters"),
         make_ui_inputs(ns)
       ),
       card(
         full_screen = TRUE,
         card_header("Trend Analysis"),
-        apexchartOutput(ns("comparison_chart"), height = "auto")
+        apexchartOutput(ns("comparison_chart"))
       )
     )
   )

@@ -4,7 +4,7 @@ forecast_results_consumption_page_ui <- function(id) {
     layout_columns(
       col_widths = c(3, 9),
       card(
-        full_screen = TRUE,
+        full_screen = FALSE,
         card_header("Filters"),
         make_ui_inputs(ns, date_range_end_date = forecast_results_end_date),
         p(strong("Models Used")),
@@ -14,7 +14,7 @@ forecast_results_consumption_page_ui <- function(id) {
       card(
         full_screen = TRUE,
         card_header("Forecasts Results"),
-        apexchartOutput(ns("forecast_plot"), height = "auto")
+        apexchartOutput(ns("forecast_plot"))
       )
     )
   )

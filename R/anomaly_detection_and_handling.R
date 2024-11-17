@@ -4,12 +4,13 @@ anomaly_detection_and_handling_page_ui <- function(id) {
     layout_columns(
       col_widths = c(3, 9),
       card(
-        full_screen = TRUE,
+        full_screen = FALSE,
         card_header("Filters"),
         make_ui_inputs(ns, show_both_consumption_and_service = FALSE)
       ),
       navset_card_underline(
         title = "Anomaly Plots",
+        full_screen = TRUE,
         nav_panel("Anomaly Detection", plotlyOutput(ns("anomalies_plot")) |> withSpinner(type = 4, size = 0.5)),
         nav_panel("Anomaly Handling", plotlyOutput(ns("cleaned_anomaly_plot")) |> withSpinner(type = 4, size = 0.5))
       )

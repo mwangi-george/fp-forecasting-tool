@@ -5,7 +5,7 @@ extract_from_khis_page_ui <- function(id) {
     layout_columns(
       col_widths = c(4, 8),
       card(
-        full_screen = TRUE,
+        full_screen = FALSE,
         card_header("Filters"),
         actionButton(
           ns("click_here_to_show_khis_login_modal"),
