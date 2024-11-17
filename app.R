@@ -27,7 +27,8 @@ ui <- page_navbar(
   nav_panel("Anomaly Detection", anomaly_detection_and_handling_page_ui("anomaly_detection_and_handling")),
   nav_panel("Forecast Results", forecast_results_consumption_page_ui("forecasting_results_comparison")),
   nav_panel("Live Model", live_prophet_forecasting_model_page_ui("prophet_forecasting_model")),
-  nav_panel("Acess DHIS2", extract_from_khis_page_ui("extraction_from_dhis2"))
+  nav_panel("Acess DHIS2", extract_from_khis_page_ui("extraction_from_dhis2")),
+  tags$head(tags$style(disconnection_notification_style)) # styles.R
 )
 
 server <- function(input, output) {
