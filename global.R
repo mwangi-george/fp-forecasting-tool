@@ -5,12 +5,14 @@ pacman::p_load(
 
 
 historical_fp_data <- readRDS("data/comparison_data.rds")
-forecast_results <- readRDS("data/final_forecasts.rds")
+forecast_results <- readRDS("data/final_forecasts_drive.rds")
 
 distinct_analytics <- historical_fp_data |> arrange(analytic_name) |> distinct(analytic_name) |> pull(analytic_name)
 distinct_organisations <- historical_fp_data |> arrange(org_unit) |>  distinct(org_unit) |> pull(org_unit)
-
 forecasting_approaches <- historical_fp_data |> distinct(method) |> pull(method)
+
+forecast_results_end_date <- forecast_results |>
+    summarize(latest_date = max(.index) |> as.Date()) %>% pull(latest_date)
 
 
 fp_consumption_747A_ids <- readRDS("data/fp_consumption_data_element_ids.rds")
