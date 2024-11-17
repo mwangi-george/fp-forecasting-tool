@@ -11,8 +11,8 @@ anomaly_detection_and_handling_page_ui <- function(id) {
       navset_card_underline(
         title = "Anomaly Plots",
         full_screen = TRUE,
-        nav_panel("Anomaly Detection", plotlyOutput(ns("anomalies_plot")) |> withSpinner(type = 4, size = 0.5)),
-        nav_panel("Anomaly Handling", plotlyOutput(ns("cleaned_anomaly_plot")) |> withSpinner(type = 4, size = 0.5))
+        nav_panel("Anomaly Detection", plotlyOutput(ns("anomalies_plot"), height = "100%") |> withSpinner(type = 4, size = 0.5)),
+        nav_panel("Anomaly Handling", plotlyOutput(ns("cleaned_anomaly_plot"), height = "100%") |> withSpinner(type = 4, size = 0.5))
       )
     )
   )

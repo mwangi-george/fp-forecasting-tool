@@ -85,35 +85,23 @@ extract_from_khis_page_server <- function(id) {
     # get namespace
     ns <- session$ns
     dhis_connection <- reactiveVal(NULL)
+    base_url <- "https://hiskenya.org"
 
     # observe trigger button
     observeEvent(input$click_here_to_show_khis_login_modal, {
       showModal(modalDialog(
         title = div(tags$h3("Access DHIS2 directly", style = heading_style)),
-        textInput(
-          ns("his_base_url"),
-          label = "Enter a valid DHIS2 instance/url",
-          value = "https://hiskenya.org", placeholder = "Example: https://hiskenya.org", width = "100%"
-        ),
-        textInput(
-          ns("his_user"),
-          label = "Enter your DHIS2 username",
-          value = "",
-          placeholder = "your_username",
-          width = "100%"
-          ),
+        textInput(ns("his_user"), label = "Enter your DHIS2 username", value = "", placeholder = "your_username", width = "100%"),
         passwordInput(ns("his_pass"), "Enter your DHIS2 password", value = "", width = "100%", placeholder = "your_password"),
         actionButton(ns("click_here_to_login_to_dhis2"), "Click here to login", class = "btn-primary", style = "width: 100%;"),
-        easyClose = TRUE, size = "m", footer = NULL
+        easyClose = TRUE, size = "s", footer = NULL
       ))
     })
 
     # login a user to DHIS
     observeEvent(input$click_here_to_login_to_dhis2, {
-      base_url <- input$his_base_url
       username <- input$his_user
       password <- input$his_pass
-      req(base_url)
       req(username)
       req(password)
 
@@ -124,7 +112,6 @@ extract_from_khis_page_server <- function(id) {
         updateActionButton(session, "click_here_to_show_khis_login_modal", label = "Already logged in! 🚀🚀")
         disable("click_here_to_show_khis_login_modal")
         enable("click_here_to_extract_selected_data_from_khis")
-
 
         con <- Dhis2r$new(base_url, username, password)
         dhis_connection(con)

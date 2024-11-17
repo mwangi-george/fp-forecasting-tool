@@ -11,7 +11,7 @@ comparison_service_consumption_page_ui <- function(id) {
       card(
         full_screen = TRUE,
         card_header("Trend Analysis"),
-        apexchartOutput(ns("comparison_chart"))
+        apexchartOutput(ns("comparison_chart"), height = "100%")
       )
     )
   )

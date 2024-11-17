@@ -14,7 +14,7 @@ forecast_results_consumption_page_ui <- function(id) {
       card(
         full_screen = TRUE,
         card_header("Forecasts Results"),
-        apexchartOutput(ns("forecast_plot"))
+        apexchartOutput(ns("forecast_plot"), height = "100%")
       )
     )
   )

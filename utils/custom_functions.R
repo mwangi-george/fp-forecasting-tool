@@ -290,6 +290,7 @@ extraction_data_from_dhis2 <- memoise(
         return(response)
       },
       error = function(e) {
+        shinyalert("Error during extraction", e$message, "error", closeOnClickOutside = TRUE)
         return(sample_df_if_query_fails)
       }
     )
