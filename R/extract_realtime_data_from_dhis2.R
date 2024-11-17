@@ -94,7 +94,7 @@ extract_from_khis_page_server <- function(id) {
         textInput(ns("his_user"), label = "Enter your DHIS2 username", value = "", placeholder = "your_username", width = "100%"),
         passwordInput(ns("his_pass"), "Enter your DHIS2 password", value = "", width = "100%", placeholder = "your_password"),
         actionButton(ns("click_here_to_login_to_dhis2"), "Click here to login", class = "btn-primary", style = "width: 100%;"),
-        easyClose = TRUE, size = "s", footer = NULL
+        easyClose = TRUE, size = "m", footer = NULL
       ))
     })
 
