@@ -81,6 +81,7 @@ extract_from_khis_page_ui <- function(id) {
 
 extract_from_khis_page_server <- function(id) {
   moduleServer(id, function(input, output, session) {
+    extracted_data <- NULL
     # get namespace
     ns <- session$ns
     dhis_connection <- reactiveVal(NULL)
@@ -178,5 +179,7 @@ extract_from_khis_page_server <- function(id) {
         })
       }
     })
+
+    return(extracted_data)
   })
 }

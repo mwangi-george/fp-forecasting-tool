@@ -117,7 +117,7 @@ login_to_dhis2_within_shiny <- function(base_url, username, password) {
 
 
 run_anomaly_detection <- memoise(
-  function(data_to_anomalize) {
+  function(data_to_anomalize, date_col, value_col) {
     tryCatch(
       expr = {
         print("Running anomaly detection...")
@@ -136,30 +136,43 @@ run_anomaly_detection <- memoise(
   }
 )
 
-
 forecast_with_prophet <- memoise(
   function(data_to_forecast, horizon, growth_type, show_seasonality) {
     if ((data_to_forecast |> nrow()) > 2) {
       tryCatch(
         expr = {
-          print("Building your forecast with prophet...")
-
+          print("Building your forecast with Prophet...")
           model_results <- suppressWarnings(
             expr = {
+              # Fit the Prophet model
               fit <- prophet(
                 df = data_to_forecast,
                 growth = growth_type,
                 seasonality.mode = "additive",
                 yearly.seasonality = show_seasonality,
-                interval.width = 0.95
+                interval.width = 0.80
               )
 
-              future <- make_future_dataframe(fit, periods = horizon, freq = "1 month", include_history = T)
+              # Create future dates for forecasting
+              future <- make_future_dataframe(fit, periods = horizon, freq = "1 month", include_history = TRUE)
 
+              # Ensure the future dates are beyond the last date in the input data
               last_date <- tail(data_to_forecast$ds, n = 1)
-
               future <- future |> filter(ds > last_date)
+
+              # Generate the forecast
               forecast <- predict(fit, future)
+
+              # Apply a lower bound to ensure no negative forecasts or intervals
+              forecast <- forecast %>%
+                mutate(
+                  yhat = pmax(yhat, 0),
+                  yhat_lower = pmax(yhat_lower, 0),
+                  yhat_upper = pmax(yhat_upper, 0)
+                )
+
+              # Return the adjusted forecast
+              forecast
             }
           )
 
@@ -213,7 +226,9 @@ retrieve_model_info <- function(dataset, fp_method) {
         filter(.key == "prediction", method == fp_method)
 
       if (model_data |> nrow() > 0) {
-        model_desc <- model_data |> distinct(.model_desc) |>  pull(.model_desc)
+        model_desc <- model_data |>
+          distinct(.model_desc) |>
+          pull(.model_desc)
         return(model_desc)
       } else {
         return("No data")
@@ -227,20 +242,24 @@ retrieve_model_info <- function(dataset, fp_method) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+build_prophet_model_results_chart <- function(actual_df, predicted_df, input) {
+  plot_ly() |>
+    add_trace(
+      data = actual_df, x = ~ds, y = ~y, type = "scatter",
+      mode = "lines+markers", name = "Actual Data",
+      line = list(color = "#E73846"), marker = list(color = "#E73846", size = 5)
+    ) |>
+    add_trace(
+      data = predicted_df, x = ~ds, y = ~yhat,
+      type = "scatter", mode = "lines+markers", line = list(color = "#1C3557"),
+      marker = list(color = "#1C3557", size = 5), name = "Estimate"
+    ) |>
+    add_ribbons(
+      data = predicted_df, x = ~ds, ymin = ~yhat_lower, ymax = ~yhat_upper,
+      fillcolor = "gray90", line = list(color = "transparent"), name = "Forecast Interval"
+    ) |>
+    layout(
+      title = str_c(input$org_unit_for_service_consumption_comparison, input$analytic_for_service_consumption_comparison, "Forecast Plot", sep = " "),
+      xaxis = list(title = "Date"), yaxis = list(title = "Value"), showlegend = FALSE
+    )
+}

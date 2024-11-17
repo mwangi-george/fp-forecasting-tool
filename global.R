@@ -5,7 +5,7 @@ pacman::p_load(
 
 # Import required datasets
 
-historical_fp_data <- readRDS("data/comparison_data.rds")
+historical_fp_data <- readRDS("data/historical_fp_data.rds")
 forecast_results <- readRDS("data/final_forecasts_drive.rds")
 
 fp_consumption_747A_ids <- readRDS("data/fp_consumption_data_element_ids.rds")

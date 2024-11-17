@@ -30,6 +30,7 @@ live_prophet_forecasting_model_page_ui <- function(id) {
         numericInput(ns("horizon"), "Change Forecast Horizon:", min = 1, max = 100, value = 12),
         radioButtons(ns("seasonality"), "Show Seasonality", choices = c(Yes = T, No = F), selected = F),
         radioButtons(ns("growth"), "Choose Growth Type", choices = c(Linear = "linear", Flat = "flat"), selected = "linear"),
+        materialSwitch(ns("run_anomalization"), label = "Check anomalies first",value = FALSE, width = "100%", status = "danger")
       ),
       navset_card_underline(
         title = "Forecasting Outputs",
@@ -53,14 +54,23 @@ live_prophet_forecasting_model_page_ui <- function(id) {
 live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
   moduleServer(id, function(input, output, session) {
     prophet_input_data <- eventReactive(input$run_forecast, {
-      data_to_forecast |>
+      data_to_forecast <- data_to_forecast |>
         filter(
           org_unit == input$org_unit_for_service_consumption_comparison,
           analytic_name == input$analytic_for_service_consumption_comparison,
           method %in% c(input$forecasting_approach_for_service_consumption_comparison)
-        ) |>
-        transmute(ds = period, y = round(value)) |>
-        arrange(ds)
+        )
+
+      if (input$run_anomalization) {
+        data_to_forecast <- data_to_forecast |>
+          run_anomaly_detection() |>
+          transmute(ds = period, y = round(observed_clean)) |>
+          arrange(ds)
+      } else {
+        data_to_forecast <- data_to_forecast |>
+          transmute(ds = period, y = round(value)) |>
+          arrange(ds)
+      }
     })
 
     prophet_output_data <- eventReactive(input$run_forecast, {
@@ -78,14 +88,12 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
           }, min = 0, max = 10, value = 9, message = "Processing..."
         )
       )
-
       return(model_results)
     })
 
     observeEvent(input$run_forecast, {
-      print(glue("Type of model results: {prophet_output_data() |> class()}"))
 
-      if (class(prophet_output_data()) == "character") {
+      if ("character" %in% class(prophet_output_data())) {
         shinyalert("Failed", prophet_output_data(), "error", closeOnClickOutside = TRUE)
         output$forecast_plot <- renderPlotly({
           NULL
@@ -106,25 +114,7 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
         withProgress(
           expr = {
             output$forecast_plot <- renderPlotly({
-              plot_ly() |>
-                add_trace(
-                  data = prophet_input_data(), x = ~ds, y = ~y, type = "scatter",
-                  mode = "lines+markers", name = "Actual Data",
-                  line = list(color = "#E73846"), marker = list(color = "#E73846", size = 5)
-                ) |>
-                add_trace(
-                  data = prophet_output_data(), x = ~ds, y = ~yhat,
-                  type = "scatter", mode = "lines+markers", line = list(color = "#1C3557"),
-                  marker = list(color = "#1C3557", size = 5), name = "Estimate"
-                ) |>
-                add_ribbons(
-                  data = prophet_output_data(), x = ~ds, ymin = ~yhat_lower, ymax = ~yhat_upper,
-                  fillcolor = "gray90", line = list(color = "transparent"), name = "Forecast Interval"
-                ) |>
-                layout(
-                  title = str_c(input$org_unit_for_service_consumption_comparison, input$analytic_for_service_consumption_comparison, "Forecast Plot", sep = " "),
-                  xaxis = list(title = "Date"), yaxis = list(title = "Value"), showlegend = FALSE
-                )
+              build_prophet_model_results_chart(prophet_input_data(), prophet_output_data(), input)
             })
 
             forecast_table_data <- prophet_output_data() |>

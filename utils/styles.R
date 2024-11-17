@@ -3,7 +3,7 @@ heading_style <-  "color: #2d677d; font-weight: bold; text-align: center;"
 
 disconnection_notification_style <- HTML("
     #shiny-disconnected-overlay:before {
-      content: 'Server closed due to idle session. Please reload this page';
+      content: 'Server closed due to idle session or an error. Please reload this page';
       font-size: 24px;
       color: #444;
       background-color: #fff;
