@@ -263,3 +263,35 @@ build_prophet_model_results_chart <- function(actual_df, predicted_df, input) {
       xaxis = list(title = "Date"), yaxis = list(title = "Value"), showlegend = FALSE
     )
 }
+
+
+extraction_data_from_dhis2 <- memoise(
+  function(connection, consumption_ids, service_ids, org_ids, period_range, output_scheme) {
+    tryCatch(
+      expr = {
+        sample_df_if_query_fails <- tibble::tibble(
+          analytic = character(),
+          org_unit = character(),
+          period = character(),
+          value = numeric()
+        )
+
+        print("Extracting requested data from khis aggregate web server...")
+        response <- connection$get_analytics(
+          analytic = c(consumption_ids, service_ids),
+          org_unit = c(org_ids),
+          period = c(period_range),
+          output_scheme = output_scheme
+        )
+
+        if (nrow(response) == 0) {
+          return(sample_df_if_query_fails)
+        }
+        return(response)
+      },
+      error = function(e) {
+        return(sample_df_if_query_fails)
+      }
+    )
+  }
+)

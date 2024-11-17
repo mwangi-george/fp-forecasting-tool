@@ -140,44 +140,28 @@ extract_from_khis_page_server <- function(id) {
       periods_vector <- seq(from = as.Date(start_date), to = as.Date(end_date), by = "month")
       period_formatted <- format(periods_vector, "%Y%m")
 
-      sample_df_if_query_fails <- tibble::tibble(
-        analytic = character(), org_unit = character(), period = character(), value = numeric()
-      )
+      withProgress(
+        expr = {
+          extraction_results <- extraction_data_from_dhis2(
+            connection = dhis_connection(),
+            consumption_ids = input$fp_consumption_data_ids,
+            service_ids = input$fp_service_data_ids,
+            org_ids = input$his_org_unit,
+            period_range = period_formatted,
+            output_scheme = input$his_output_scheme
+          )
 
-      extraction_data_from_dhis2 <- function() {
-        tryCatch(
-          expr = {
-            # extract
-            response <- dhis_connection()$get_analytics(
-              analytic = c(input$fp_consumption_data_ids, input$fp_service_data_ids),
-              org_unit = c(input$his_org_unit),
-              period = c(period_formatted),
-              output_scheme = input$his_output_scheme
-            )
-
-            if (nrow(response) == 0) {
-                return(sample_df_if_query_fails)
-            }
-            return(response)
-          },
-          error = function(e) {
-            shinyalert("Error during extraction", e$message, "error", closeOnClickOutside = TRUE)
-            return(sample_df_if_query_fails)
+          if (!is.null(extraction_results)) {
+            output$extraction_results_table <- renderDT({
+              extraction_results |> render_data_with_dt()
+            })
+          } else {
+            output$extraction_results_table <- renderDT({
+              NULL
+            })
           }
-        )
-      }
-
-      extraction_results <- extraction_data_from_dhis2()
-
-      if (!is.null(extraction_results)) {
-        output$extraction_results_table <- renderDT({
-          extraction_results |> render_data_with_dt()
-        })
-      } else {
-        output$extraction_results_table <- renderDT({
-          NULL
-        })
-      }
+        }, min = 0, max = 10, value = 7, message = "Extracting...", detail = "Please wait"
+      )
     })
 
     return(extracted_data)
