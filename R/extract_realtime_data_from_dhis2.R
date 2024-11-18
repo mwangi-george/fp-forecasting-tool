@@ -142,7 +142,11 @@ extract_from_khis_page_server <- function(id) {
           if (!is.null(extraction_results)) {
             output$extraction_results_table <- renderReactable({
               print("Rendering data.......")
-              extraction_results |> render_data_with_reactable(dataset_id = "extraction_results_download_csv")
+              extraction_results |>
+                render_data_with_reactable(
+                  dataset_id = "extraction_results_download_csv",
+                  columns_to_format = generate_reactable_columns(extraction_results, "value")
+                )
             })
           } else {
             output$extraction_results_table <- renderReactable({

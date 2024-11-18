@@ -210,7 +210,7 @@ render_data_with_dt <- function(dt_object) {
 }
 
 
-render_data_with_reactable <- function(dataset, dataset_id) {
+render_data_with_reactable <- function(dataset, dataset_id, columns_to_format) {
   reactable(
     dataset,
     elementId = dataset_id,
@@ -223,6 +223,7 @@ render_data_with_reactable <- function(dataset, dataset_id) {
     defaultPageSize = 40,
     showPageSizeOptions = TRUE,
     pageSizeOptions = c(10, 20, 40, 80, 100),
+    columns = columns_to_format,
     theme = reactableTheme(
       color = "#333",
       borderColor = "#ccc",

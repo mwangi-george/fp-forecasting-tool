@@ -150,7 +150,10 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
             })
             output$monthly_forecast <- renderReactable({
               forecast_table_data |>
-                render_data_with_reactable(dataset_id = "monthly_forecast_download_csv")
+                render_data_with_reactable(
+                  dataset_id = "monthly_forecast_download_csv",
+                  columns_to_format = generate_reactable_columns(forecast_table_data, c("Lower", "Estimate", "Upper"))
+                )
             })
           }, min = 0, max = 10, value = 9, message = "Building visuals..."
         )
