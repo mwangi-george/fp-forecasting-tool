@@ -45,7 +45,7 @@ live_prophet_forecasting_model_page_ui <- function(id) {
           reactableOutput(ns("monthly_forecast"), height = "400px"),
           tags$button("Download as CSV", onclick = "Reactable.downloadDataCSV('monthly_forecast_download_csv')", class = "btn-primary", style = "width: 20%;")
         ),
-        nav_panel("Model Plot", plotlyOutput(ns("forecast_plot"), height = "auto"))
+        nav_panel("Model Plot", plotlyOutput(ns("forecast_plot"), height = "auto") |> withSpinner())
       )
     )
   )
