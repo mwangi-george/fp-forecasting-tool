@@ -78,6 +78,17 @@ memoised_login <- memoise(
   cache = cachem::cache_mem(max_age = 60 * 15)
 )
 
+notify_client <- function(notification_title, notification_text) {
+  showModal(
+    modalDialog(
+      title = div(tags$h3(notification_title, style = heading_style)),
+      notification_text,
+      easyClose = TRUE,
+      size = "m"
+    )
+  )
+}
+
 login_to_dhis2_within_shiny <- function(base_url, username, password) {
   login_status <- FALSE
 
@@ -92,24 +103,21 @@ login_to_dhis2_within_shiny <- function(base_url, username, password) {
         login <- memoised_login(url, username, password)
 
         if (status_code(login) == 200L) {
-          shinyalert(
-            title = "Success",
-            text = glue("Welcome {username}! Select the data your want to extract on the sidebar and click the 'Extract' button."), "success",
-            closeOnClickOutside = TRUE, closeOnEsc = TRUE
-          )
+          notify_client("Login Successful...", glue("Welcome {username}! Select the data your want to extract on the sidebar and click the 'Extract' button."))
+
           login_status <- TRUE
           return(login_status)
         } else {
-          shinyalert("Failed", "Invalid username/password. Please try again!", "error", closeOnClickOutside = TRUE, closeOnEsc = TRUE)
+          notify_client("Login Failed...", "Invalid username/password. Please try again!")
           return(login_status)
         }
       } else {
-        shinyalert("Network Error", "Please check your internet connection or ensure all fields are filled.", "error", closeOnClickOutside = TRUE, closeOnEsc = TRUE)
+        notify_client("Network Error", "Please check your internet connection or ensure all fields are filled.")
         return(login_status)
       }
     },
     error = function(e) {
-      shinyalert("Processing Error!", e$message, "error", closeOnClickOutside = TRUE, closeOnEsc = TRUE)
+      notify_client("Processing Error!", e$message)
       return(login_status)
     }
   )
@@ -184,7 +192,7 @@ forecast_with_prophet <- memoise(
         }
       )
     } else {
-      return("Series has insufficient data to build a forecast...")
+      return("Series has insufficient data to build a forecast. Please review it's historical data in the 'Trend Analytics' tab")
     }
   }
 )
@@ -224,6 +232,26 @@ render_data_with_reactable <- function(dataset, dataset_id) {
       style = list(fontFamily = "Arial")
     )
   )
+}
+
+# Function to create column definitions dynamically
+generate_reactable_columns <- function(data, columns_to_format = NULL) {
+  # If no specific columns are provided, select all numeric columns by default
+  columns_to_format <- columns_to_format %||%
+    names(select(data, where(is.numeric)))
+
+  # Generate the list for the reactable columns argument using purrr::map
+  column_definitions <- map(
+    names(data),
+    ~ if (.x %in% columns_to_format) {
+      colDef(format = colFormat(separators = TRUE))
+    } else {
+      colDef()
+    }
+  ) %>%
+    set_names(names(data)) # Convert the output to a named list
+
+  return(column_definitions)
 }
 
 read_forecasts_data_from_drive <- function() {
@@ -315,7 +343,7 @@ extraction_data_from_dhis2 <- memoise(
         return(response)
       },
       error = function(e) {
-        shinyalert("Error during extraction", e$message, "error", closeOnClickOutside = TRUE)
+        notify_client("Error during extraction", e$message)
         return(sample_df_if_query_fails)
       }
     )

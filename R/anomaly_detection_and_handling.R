@@ -43,7 +43,7 @@ anomaly_detection_and_handling_page_server <- function(id, data_to_plot) {
         output$cleaned_anomaly_plot <- renderPlotly({
           NULL
         })
-        shinyalert("Oops!", anomalization_results, type = "error", closeOnClickOutside = TRUE)
+        notify_client("Oops!", anomalization_results)
       }
     })
   })

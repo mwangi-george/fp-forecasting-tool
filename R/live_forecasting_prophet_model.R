@@ -95,7 +95,8 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
     observeEvent(input$run_forecast, {
 
       if ("character" %in% class(prophet_output_data())) {
-        shinyalert("Failed", prophet_output_data(), "error", closeOnClickOutside = TRUE)
+        notify_client("Processing Error...", prophet_output_data())
+
         output$forecast_plot <- renderPlotly({
           NULL
         })
