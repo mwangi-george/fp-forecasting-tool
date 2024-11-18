@@ -6,7 +6,8 @@ comparison_service_consumption_page_ui <- function(id) {
       card(
         full_screen = FALSE,
         card_header("Filters"),
-        make_ui_inputs(ns)
+        make_ui_inputs(ns),
+        textOutput(ns("text_for_converted_service_products"))
       ),
       card(
         full_screen = TRUE,
@@ -36,6 +37,12 @@ comparison_service_consumption_page_server <- function(id, data_to_plot) {
         ) |>
         ax_markers(size = 6) |>
         ax_tooltip(shared = FALSE, fillSeriesColor = TRUE, y = add_comma_sep_to_y_values())
+    })
+
+    observe({
+      input$analytic_for_service_consumption_comparison
+
+      generate_text_for_converted_service_products(input, output)
     })
   })
 }

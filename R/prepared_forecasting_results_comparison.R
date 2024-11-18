@@ -9,7 +9,8 @@ forecast_results_consumption_page_ui <- function(id) {
         make_ui_inputs(ns, date_range_end_date = forecast_results_end_date),
         p(strong("Models Used")),
         textOutput(ns("model_used_for_consumption")),
-        textOutput(ns("model_used_for_service"))
+        textOutput(ns("model_used_for_service")),
+        textOutput(ns("text_for_converted_service_products"))
       ),
       card(
         full_screen = TRUE,
@@ -58,6 +59,12 @@ forecast_results_consumption_page_server <- function(id, data_to_plot) {
     })
     output$model_used_for_service <- renderText({
       glue("Service: {filtered_data() |> retrieve_model_info('Service')}")
+    })
+
+    observe({
+      input$analytic_for_service_consumption_comparison
+
+      generate_text_for_converted_service_products(input, output)
     })
 
   })

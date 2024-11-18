@@ -351,3 +351,27 @@ extraction_data_from_dhis2 <- memoise(
   }
 )
 
+
+generate_text_for_converted_service_products <- function(input, output){
+
+  product <- input$analytic_for_service_consumption_comparison
+
+  if (product == "COCs") {
+    output$text_for_converted_service_products <- renderText({
+      glue("A factor of 2.2 has been applied to to {product}'s Service data")
+    })
+  } else if (product %in% c("Female Condoms", "Male Condoms")) {
+    output$text_for_converted_service_products <- renderText({
+      glue("A factor of 10 has been applied to to {product}'s Service data")
+    })
+  } else if (product == "POPs") {
+    output$text_for_converted_service_products <- renderText({
+      glue("A factor of 1.5 has been applied to to {product}'s Service data")
+    })
+  } else {
+    output$text_for_converted_service_products <- renderText({
+      NULL
+    })
+  }
+}
+
