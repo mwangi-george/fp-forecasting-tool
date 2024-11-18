@@ -140,12 +140,14 @@ extract_from_khis_page_server <- function(id) {
 
           if (!is.null(extraction_results)) {
             output$extraction_results_table <- renderDT({
+              print("Rendering data.......")
               extraction_results |> render_data_with_dt()
-            })
+            }, server = TRUE)
           } else {
             output$extraction_results_table <- renderDT({
+              print("Rendering data.......")
               NULL
-            })
+            }, server = TRUE)
           }
         }, min = 0, max = 10, value = 7, message = "Extracting...", detail = "Please wait"
       )

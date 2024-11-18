@@ -197,7 +197,7 @@ render_data_with_dt <- function(dt_object) {
       extensions = "Buttons",
       editable = TRUE,
       fillContainer = T,
-      options = list(dom = "Brt", buttons = c("excel", "pdf", "copy"), pageLength = 40)
+      options = list(dom = "Brt", buttons = c("excel", "pdf", "copy"), pageLength = 40, ajax=NULL)
     )
 }
 
