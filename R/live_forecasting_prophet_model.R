@@ -38,11 +38,12 @@ live_prophet_forecasting_model_page_ui <- function(id) {
         nav_panel(
           "Model Data",
           layout_column_wrap(
-            value_box(title = "Total Lower", value = textOutput(ns("yhat_lower")), height = "100px", theme = "red"),
-            value_box(title = "Total Estimate", value = textOutput(ns("yhat")), height = "100px", theme = "success"),
-            value_box(title = "Total Upper", value = textOutput(ns("yhat_upper")), height = "100px", theme = "warning")
+            value_box(title = "Total Lower", value = textOutput(ns("yhat_lower")), min_height = "100px", max_height = "150px", theme = "red"),
+            value_box(title = "Total Estimate", value = textOutput(ns("yhat")), min_height = "100px", max_height = "150px", theme = "success"),
+            value_box(title = "Total Upper", value = textOutput(ns("yhat_upper")), min_height = "100px", max_height = "150px", theme = "warning")
           ),
-          DTOutput(ns("monthly_forecast"), height = 400)
+          reactableOutput(ns("monthly_forecast"), height = "400px"),
+          tags$button("Download as CSV", onclick = "Reactable.downloadDataCSV('monthly_forecast_download_csv')", class = "btn-primary", style = "width: 20%;")
         ),
         nav_panel("Model Plot", plotlyOutput(ns("forecast_plot"), height = "auto"))
       )
@@ -98,7 +99,7 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
         output$forecast_plot <- renderPlotly({
           NULL
         })
-        output$monthly_forecast <- renderDT({
+        output$monthly_forecast <- renderReactable({
           NULL
         })
         output$yhat <- renderText({
@@ -119,8 +120,8 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
 
             forecast_table_data <- prophet_output_data() |>
               transmute(
-                analytic_name = input$analytic_for_service_consumption_comparison,
-                org_unit = input$org_unit_for_service_consumption_comparison,
+                Product = input$analytic_for_service_consumption_comparison,
+                `Org Unit` = input$org_unit_for_service_consumption_comparison,
                 Date = as.Date(ds),
                 Lower = round(yhat_lower),
                 Estimate = round(yhat),
@@ -146,11 +147,9 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
                 pull(Upper) |>
                 format(big.mark = ", ")
             })
-
-            output$monthly_forecast <- renderDT({
+            output$monthly_forecast <- renderReactable({
               forecast_table_data |>
-                render_data_with_dt() |>
-                DT::formatCurrency(4:6, currency = "", digits = 0)
+                render_data_with_reactable(dataset_id = "monthly_forecast_download_csv")
             })
           }, min = 0, max = 10, value = 9, message = "Building visuals..."
         )

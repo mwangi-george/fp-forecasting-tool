@@ -201,6 +201,31 @@ render_data_with_dt <- function(dt_object) {
     )
 }
 
+
+render_data_with_reactable <- function(dataset, dataset_id) {
+  reactable(
+    dataset,
+    elementId = dataset_id,
+    searchable = TRUE,
+    pagination = TRUE,
+    highlight = TRUE,
+    resizable = TRUE,
+    bordered = TRUE,
+    striped = TRUE,
+    defaultPageSize = 40,
+    showPageSizeOptions = TRUE,
+    pageSizeOptions = c(10, 20, 40, 80, 100),
+    theme = reactableTheme(
+      color = "#333",
+      borderColor = "#ccc",
+      stripedColor = "#f9f9f9",
+      highlightColor = "#ccc",
+      cellPadding = "8px 12px",
+      style = list(fontFamily = "Arial")
+    )
+  )
+}
+
 read_forecasts_data_from_drive <- function() {
   path <- "https://docs.google.com/spreadsheets/d/14h3_V3UZS8HrS5jjmN_SzjBjXwAvEtyKR7IQmTIioj8/"
   tryCatch(
@@ -296,3 +321,4 @@ extraction_data_from_dhis2 <- memoise(
     )
   }
 )
+

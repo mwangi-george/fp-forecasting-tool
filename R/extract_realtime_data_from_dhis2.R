@@ -72,7 +72,8 @@ extract_from_khis_page_ui <- function(id) {
       card(
         full_screen = TRUE,
         card_header("Extraction Results"),
-        DTOutput(ns("extraction_results_table"), height = 400)
+        reactableOutput(ns("extraction_results_table"), height = "500"),
+        tags$button("Download as CSV", onclick = "Reactable.downloadDataCSV('extraction_results_download_csv')", class = "btn-primary", style = "width: 20%;")
       )
     )
   )
@@ -139,15 +140,15 @@ extract_from_khis_page_server <- function(id) {
           )
 
           if (!is.null(extraction_results)) {
-            output$extraction_results_table <- renderDT({
+            output$extraction_results_table <- renderReactable({
               print("Rendering data.......")
-              extraction_results |> render_data_with_dt()
-            }, server = TRUE)
+              extraction_results |> render_data_with_reactable(dataset_id = "extraction_results_download_csv")
+            })
           } else {
-            output$extraction_results_table <- renderDT({
+            output$extraction_results_table <- renderReactable({
               print("Rendering data.......")
               NULL
-            }, server = TRUE)
+            })
           }
         }, min = 0, max = 10, value = 7, message = "Extracting...", detail = "Please wait"
       )

@@ -1,11 +1,11 @@
 pacman::p_load(
   tidyr, dplyr, purrr, stringr, bslib, shiny, shinyjs, janitor, apexcharter, shinyWidgets, glue, plotly, timetk, shinycssloaders,
-  shinyalert, bsicons, DT, prophet, fs, httr, memoise, dhis2r, tibble, lubridate, thematic
+  shinyalert, bsicons, DT, prophet, fs, httr, memoise, dhis2r, tibble, lubridate, thematic, gt, reactable
 )
 
 # Import required datasets
 
-historical_fp_data <- readRDS("data/historical_fp_data.rds")
+historical_fp_data <- readRDS("data/pinned_df.rds")
 forecast_results <- readRDS("data/final_forecasts_drive.rds")
 
 fp_consumption_747A_ids <- readRDS("data/fp_consumption_data_element_ids.rds")
