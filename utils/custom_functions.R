@@ -1,4 +1,4 @@
-make_ui_inputs <- function(ns, show_both_consumption_and_service = TRUE, date_range_end_date = today()) {
+make_ui_inputs <- function(ns, show_both_consumption_and_service = TRUE, date_range_max_date = today(), date_range_end_date = today()) {
   ui_inputs <- tagList(
     pickerInput(
       ns("org_unit_for_service_consumption_comparison"),
@@ -26,7 +26,7 @@ make_ui_inputs <- function(ns, show_both_consumption_and_service = TRUE, date_ra
       start = "2020-01-01",
       end = date_range_end_date,
       min = "2020-01-01",
-      max = date_range_end_date,
+      max = date_range_max_date,
       format = "mm/dd/yy",
       separator = " - ",
       width = "100%"

@@ -26,9 +26,9 @@ forecasting_approaches <- historical_fp_data |>
   distinct(method) |>
   pull(method)
 
-forecast_results_end_date <- forecast_results |>
+forecast_results_max_date <- forecast_results |>
   summarize(latest_date = max(.index) |> as.Date()) %>%
   pull(latest_date)
 
-
+forecast_results_end_date <- floor_date(today(), unit = "month") + 360
 

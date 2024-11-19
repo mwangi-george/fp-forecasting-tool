@@ -6,7 +6,7 @@ forecast_results_consumption_page_ui <- function(id) {
       card(
         full_screen = FALSE,
         card_header("Filters"),
-        make_ui_inputs(ns, date_range_end_date = forecast_results_end_date),
+        make_ui_inputs(ns, date_range_end_date = forecast_results_end_date, date_range_max_date = forecast_results_max_date, ),
         p(strong("Models Used")),
         textOutput(ns("model_used_for_consumption")),
         textOutput(ns("model_used_for_service")),

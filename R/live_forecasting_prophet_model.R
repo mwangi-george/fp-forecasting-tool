@@ -46,7 +46,7 @@ live_prophet_forecasting_model_page_ui <- function(id) {
               value = textOutput(ns("yhat_lower")),
               min_height = "100px",
               max_height = "150px",
-              theme = "teal",
+              theme = "danger",
               showcase = bs_icon("arrow-down-right-circle-fill")
             ),
             value_box(
