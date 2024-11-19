@@ -30,22 +30,45 @@ live_prophet_forecasting_model_page_ui <- function(id) {
         numericInput(ns("horizon"), "Change Forecast Horizon:", min = 1, max = 100, value = 12),
         radioButtons(ns("seasonality"), "Show Seasonality", choices = c(Yes = T, No = F), selected = F),
         radioButtons(ns("growth"), "Choose Growth Type", choices = c(Linear = "linear", Flat = "flat"), selected = "linear"),
-        materialSwitch(ns("run_anomalization"), label = "Check anomalies first",value = FALSE, width = "100%", status = "danger")
+        materialSwitch(ns("run_anomalization"), label = "Check anomalies first", value = FALSE, width = "100%", status = "danger")
       ),
       navset_card_underline(
         title = "Forecasting Outputs",
         full_screen = TRUE,
         nav_panel(
+          "Model Plot", plotlyOutput(ns("forecast_plot"), height = "auto")
+        ),
+        nav_panel(
           "Model Data",
           layout_column_wrap(
-            value_box(title = "Lower AMC", value = textOutput(ns("yhat_lower")), min_height = "100px", max_height = "150px", theme = "red"),
-            value_box(title = "Forecast AMC", value = textOutput(ns("yhat")), min_height = "100px", max_height = "150px", theme = "success"),
-            value_box(title = "Upper AMC", value = textOutput(ns("yhat_upper")), min_height = "100px", max_height = "150px", theme = "warning")
+            value_box(
+              title = "Lower AMC",
+              value = textOutput(ns("yhat_lower")),
+              min_height = "100px",
+              max_height = "150px",
+              theme = "teal",
+              showcase = bs_icon("arrow-down-right-circle-fill")
+            ),
+            value_box(
+              title = "Forecast AMC",
+              value = textOutput(ns("yhat")),
+              min_height = "100px",
+              max_height = "150px",
+              theme = "success",
+              showcase = bs_icon("arrow-right-circle-fill")
+            ),
+            value_box(
+              title = "Upper AMC",
+              value = textOutput(ns("yhat_upper")),
+              min_height = "100px",
+              max_height = "150px",
+              theme = "primary",
+              showcase = bs_icon("arrow-up-right-circle-fill")
+            )
           ),
           reactableOutput(ns("monthly_forecast"), height = "400px"),
           tags$button("Download as CSV", onclick = "Reactable.downloadDataCSV('monthly_forecast_download_csv')", class = "btn-primary", style = "width: 20%;")
-        ),
-        nav_panel("Model Plot", plotlyOutput(ns("forecast_plot"), height = "auto") |> withSpinner())
+        )
       )
     )
   )
@@ -93,7 +116,6 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
     })
 
     observeEvent(input$run_forecast, {
-
       if ("character" %in% class(prophet_output_data())) {
         notify_client("Processing Error...", prophet_output_data())
 
