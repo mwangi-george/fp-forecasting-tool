@@ -38,9 +38,9 @@ live_prophet_forecasting_model_page_ui <- function(id) {
         nav_panel(
           "Model Data",
           layout_column_wrap(
-            value_box(title = "Total Lower", value = textOutput(ns("yhat_lower")), min_height = "100px", max_height = "150px", theme = "red"),
-            value_box(title = "Total Estimate", value = textOutput(ns("yhat")), min_height = "100px", max_height = "150px", theme = "success"),
-            value_box(title = "Total Upper", value = textOutput(ns("yhat_upper")), min_height = "100px", max_height = "150px", theme = "warning")
+            value_box(title = "Lower AMC", value = textOutput(ns("yhat_lower")), min_height = "100px", max_height = "150px", theme = "red"),
+            value_box(title = "Forecast AMC", value = textOutput(ns("yhat")), min_height = "100px", max_height = "150px", theme = "success"),
+            value_box(title = "Upper AMC", value = textOutput(ns("yhat_upper")), min_height = "100px", max_height = "150px", theme = "warning")
           ),
           reactableOutput(ns("monthly_forecast"), height = "400px"),
           tags$button("Download as CSV", onclick = "Reactable.downloadDataCSV('monthly_forecast_download_csv')", class = "btn-primary", style = "width: 20%;")
@@ -125,26 +125,27 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
                 `Org Unit` = input$org_unit_for_service_consumption_comparison,
                 Date = as.Date(ds),
                 Lower = round(yhat_lower),
-                Estimate = round(yhat),
+                Forecast = round(yhat),
                 Upper = round(yhat_upper)
               )
 
-            summaries <- forecast_table_data |> summarize(across(4:6, ~ sum(.x, na.rm = TRUE)))
+            # summaries <- forecast_table_data |> summarize(across(4:6, ~ sum(.x, na.rm = TRUE)))
+            averages <- forecast_table_data |> summarize(across(4:6, ~ round(mean(.x, na.rm = TRUE))))
 
             output$yhat <- renderText({
-              summaries |>
-                pull(Estimate) |>
+              averages |>
+                pull(Forecast) |>
                 format(big.mark = ", ")
             })
 
             output$yhat_lower <- renderText({
-              summaries |>
+              averages |>
                 pull(Lower) |>
                 format(big.mark = ", ")
             })
 
             output$yhat_upper <- renderText({
-              summaries |>
+              averages |>
                 pull(Upper) |>
                 format(big.mark = ", ")
             })
@@ -152,7 +153,7 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
               forecast_table_data |>
                 render_data_with_reactable(
                   dataset_id = "monthly_forecast_download_csv",
-                  columns_to_format = generate_reactable_columns(forecast_table_data, c("Lower", "Estimate", "Upper"))
+                  columns_to_format = generate_reactable_columns(forecast_table_data, c("Lower", "Forecast", "Upper"))
                 )
             })
           }, min = 0, max = 10, value = 9, message = "Building visuals..."

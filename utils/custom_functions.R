@@ -214,7 +214,7 @@ render_data_with_reactable <- function(dataset, dataset_id, columns_to_format) {
   reactable(
     dataset,
     elementId = dataset_id,
-    searchable = TRUE,
+    searchable = FALSE,
     pagination = TRUE,
     highlight = TRUE,
     resizable = TRUE,
