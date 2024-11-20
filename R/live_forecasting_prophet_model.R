@@ -36,7 +36,9 @@ live_prophet_forecasting_model_page_ui <- function(id) {
         title = "Forecasting Outputs",
         full_screen = TRUE,
         nav_panel(
-          "Model Plot", plotlyOutput(ns("forecast_plot"), height = "auto")
+          "Model Plot",
+          plotlyOutput(ns("forecast_plot"), height = "auto"),
+          downloadButton(ns("download_model_data"), "Download Forecast", class = "btn-primary", style = "width: 20%;")
         ),
         nav_panel(
           "Model Data",
@@ -78,6 +80,8 @@ live_prophet_forecasting_model_page_ui <- function(id) {
 live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
   moduleServer(id, function(input, output, session) {
     prophet_input_data <- eventReactive(input$run_forecast, {
+
+      # filter the data using user inputs
       data_to_forecast <- data_to_forecast |>
         filter(
           org_unit == input$org_unit_for_service_consumption_comparison,
@@ -85,19 +89,36 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
           method %in% c(input$forecasting_approach_for_service_consumption_comparison)
         )
 
+      # Check for empty data frame
+      if (data_to_forecast |> nrow() == 0) {
+        notify_client("Oops! No data...", "There's no data for the selected inputs")
+        return(NULL)
+      }
+
       if (input$run_anomalization) {
+
+        # run anomaly detection and prepare data for modeling if user wants it
         data_to_forecast <- data_to_forecast |>
           run_anomaly_detection() |>
-          transmute(ds = period, y = round(observed_clean)) |>
-          arrange(ds)
+          mutate(y = round(observed_clean))
+
       } else {
+
         data_to_forecast <- data_to_forecast |>
-          transmute(ds = period, y = round(value)) |>
-          arrange(ds)
+          mutate(y = round(value))
       }
+
+      # Standardize column names and sort
+      data_to_forecast |>
+        transmute(ds = period, y) |>
+        arrange(ds)
     })
 
+    #
+
     prophet_output_data <- eventReactive(input$run_forecast, {
+      req(prophet_input_data())
+
       model_results <- suppressMessages(
         withProgress(
           expr = {
@@ -116,6 +137,8 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
     })
 
     observeEvent(input$run_forecast, {
+      req(prophet_input_data())
+
       if ("character" %in% class(prophet_output_data())) {
         notify_client("Processing Error...", prophet_output_data())
 
@@ -148,8 +171,21 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
                 Date = as.Date(ds),
                 Lower = round(yhat_lower),
                 Forecast = round(yhat),
-                Upper = round(yhat_upper)
+                Upper = round(yhat_upper),
+                seasonality = input$seasonality,
+                growth_type = input$growth,
+                anomalies_checked = input$run_anomalization,
+                method = input$forecasting_approach_for_service_consumption_comparison
               )
+
+            output$download_model_data <- downloadHandler(
+              filename = function() {
+                glue("{input$analytic_for_service_consumption_comparison}- {input$forecasting_approach_for_service_consumption_comparison}.csv")
+              },
+              content = function(file) {
+                write.csv(forecast_table_data, file, row.names = FALSE)
+              }
+            )
 
             # summaries <- forecast_table_data |> summarize(across(4:6, ~ sum(.x, na.rm = TRUE)))
             averages <- forecast_table_data |> summarize(across(4:6, ~ round(mean(.x, na.rm = TRUE))))
@@ -172,17 +208,19 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
                 format(big.mark = ", ")
             })
             output$monthly_forecast <- renderReactable({
-              forecast_table_data |>
-                render_data_with_reactable(
+              df_to_render <- forecast_table_data |>
+                select(-c(seasonality, growth_type, anomalies_checked, method))
+
+              df_to_render |>
+                 render_data_with_reactable(
                   dataset_id = "monthly_forecast_download_csv",
-                  columns_to_format = generate_reactable_columns(forecast_table_data, c("Lower", "Forecast", "Upper"))
+                  columns_to_format = generate_reactable_columns(df_to_render, c("Lower", "Forecast", "Upper"))
                 )
             })
+
           }, min = 0, max = 10, value = 9, message = "Building visuals..."
         )
       }
-
-      # end of observer
     })
   })
 }

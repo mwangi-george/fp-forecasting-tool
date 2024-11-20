@@ -32,3 +32,9 @@ forecast_results_max_date <- forecast_results |>
 
 forecast_results_end_date <- floor_date(today(), unit = "month") + 360
 
+
+# TODO
+# Create a tab documenting the platform's usage, navigation, value add etc
+# Embed reason for the changed service data CYP
+# Supply planning cycle
+
