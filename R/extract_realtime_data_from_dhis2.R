@@ -92,8 +92,8 @@ extract_from_khis_page_server <- function(id) {
     observeEvent(input$click_here_to_show_khis_login_modal, {
       showModal(modalDialog(
         title = div(tags$h3("Access DHIS2 directly", style = heading_style)),
-        textInput(ns("his_user"), label = "Enter your DHIS2 username", value = "", placeholder = "your_username", width = "100%"),
-        passwordInput(ns("his_pass"), "Enter your DHIS2 password", value = "", width = "100%", placeholder = "your_password"),
+        textInput(ns("his_user"), label = "Enter your DHIS2 username", value = "mikonya", placeholder = "your_username", width = "100%"),
+        passwordInput(ns("his_pass"), "Enter your DHIS2 password", value = "Kenya2030", width = "100%", placeholder = "your_password"),
         actionButton(ns("click_here_to_login_to_dhis2"), "Click here to login", class = "btn-primary", style = "width: 100%;"),
         easyClose = TRUE, size = "m", footer = NULL
       ))
@@ -140,6 +140,13 @@ extract_from_khis_page_server <- function(id) {
           )
 
           if (!is.null(extraction_results)) {
+            extraction_results <- extraction_results |> create_method_column()
+
+            # standardize data elements names
+            if (input$his_output_scheme == "NAME") {
+              extraction_results <- extraction_results |> standardize_dhis_dx_names()
+            }
+
             output$extraction_results_table <- renderReactable({
               print("Rendering data.......")
               extraction_results |>
@@ -150,7 +157,7 @@ extract_from_khis_page_server <- function(id) {
             })
           } else {
             output$extraction_results_table <- renderReactable({
-              print("Rendering data.......")
+              print("Rendering NULL.......")
               NULL
             })
           }

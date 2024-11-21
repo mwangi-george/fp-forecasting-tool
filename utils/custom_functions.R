@@ -90,6 +90,7 @@ notify_client <- function(notification_title, notification_text) {
 }
 
 login_to_dhis2_within_shiny <- function(base_url, username, password) {
+
   login_status <- FALSE
 
   tryCatch(
@@ -205,7 +206,7 @@ render_data_with_dt <- function(dt_object) {
       extensions = "Buttons",
       editable = TRUE,
       fillContainer = T,
-      options = list(dom = "Brt", buttons = c("excel", "pdf", "copy"), pageLength = 40, ajax=NULL)
+      options = list(dom = "Brt", buttons = c("excel", "pdf", "copy"), pageLength = 40, ajax = NULL)
     )
 }
 
@@ -352,8 +353,7 @@ extraction_data_from_dhis2 <- memoise(
 )
 
 
-generate_text_for_converted_service_products <- function(input, output){
-
+generate_text_for_converted_service_products <- function(input, output) {
   product <- input$analytic_for_service_consumption_comparison
 
   if (product == "COCs") {
@@ -375,3 +375,66 @@ generate_text_for_converted_service_products <- function(input, output){
   }
 }
 
+create_method_column <- function(df) {
+  tryCatch(
+    expr = {
+      # Create a column for method
+      df <- df |>
+        mutate(
+          method = case_when(
+            analytic |> str_detect("711|UpS2bTVcClZ") ~ "Service",
+            analytic |> str_detect("747|g3RQRuh8ikd") ~ "Consumption",
+            .default = "Check this!!!!!!!!!!!!!!!"
+          )
+        )
+    },
+    error = function(e) {
+      print("There is chaos here--------------")
+      print(e$message)
+    }
+  )
+}
+
+
+standardize_dhis_dx_names <- function(df) {
+  if (!"analytic" %in% colnames(df)) {
+    return(df)
+  }
+
+  tryCatch(
+    expr = {
+      df <- df |>
+        mutate(
+          # remove dispensed tag
+          analytic = analytic |> str_remove_all(".Dispensed"),
+
+          # standardize names
+          analytic = case_when(
+            analytic %in% c("MOH 711 Pills progestin only", "MOH 747A_Progestin only pills") ~ "POPs",
+            analytic %in% c("MOH 711 Rev 2020_IUCD Insertion Non Hormonal", "MOH 747A_Non-Hormonal IUCD") ~ "Non-Hormonal IUCD",
+            analytic %in% c("MOH 711 Client receiving Male condoms", "MOH 747A_Male Condoms") ~ "Male Condoms",
+            analytic %in% c("MOH 747A_Implants (2-Rod) - LNG 75mg (3 years)") ~ "Levoplant",
+            analytic %in% c("MOH 711 Rev 2020_Implants insertion 1 Rod", "MOH 747A_Implants (1-Rod) – ENG 68mg") ~ "Implanon",
+            analytic %in% c("MOH 747A_Implant (2-Rod) – LNG 75mg (5 years)") ~ "Jadelle",
+            analytic %in% c("MOH 711 Rev 2020_IUCD Insertion Hormonal", "MOH 747A_Hormonal IUCD") ~ "Hormonal IUCD",
+            analytic %in% c("MOH 711 Clients receiving Female Condoms", "MOH 747A_Female Condoms") ~ "Female Condoms",
+            analytic %in% c("MOH 711 Emergency contraceptive pill", "MOH 747A_Emergency Contraceptive pills") ~ "EC Pills",
+            analytic %in% c("MOH 711 Rev 2020_FP Injections DMPA- SC", "MOH 747A_DMPA-SC") ~ "DMPA-SC",
+            analytic %in% c("MOH 711 Rev 2020_FP Injections DMPA- IM", "MOH 747A_DMPA-IM") ~ "DMPA-IM",
+            analytic %in% c("MOH 711 Rev 2020_Clients given cycle beads", "MOH 747A_Cycle Beads") ~ "Cycle Beads",
+            analytic %in% c("MOH 711 Pills Combined oral contraceptive", "MOH 747A_Combined Oral contraceptive Pills") ~ "COCs",
+            analytic %in% c("MOH 711 Rev 2020_Implants insertion 2 Rod") ~ "2 Rod",
+            analytic == "g3RQRuh8ikd.REPORTING_RATE" ~ "Consumption Reporting Rate",
+            analytic == "UpS2bTVcClZ.REPORTING_RATE" ~ "Service Reporting Rate",
+            .default = analytic
+          )
+        )
+
+      return(df)
+    },
+    error = function(e) {
+      print(e$message)
+      return(df)
+    }
+  )
+}

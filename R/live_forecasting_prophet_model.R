@@ -114,8 +114,6 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
         arrange(ds)
     })
 
-    #
-
     prophet_output_data <- eventReactive(input$run_forecast, {
       req(prophet_input_data())
 
