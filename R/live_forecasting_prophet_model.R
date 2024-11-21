@@ -38,7 +38,7 @@ live_prophet_forecasting_model_page_ui <- function(id) {
         nav_panel(
           "Model Plot",
           plotlyOutput(ns("forecast_plot"), height = "auto"),
-          downloadButton(ns("download_model_data"), "Download Forecast", class = "btn-primary", style = "width: 20%;")
+          downloadButton(ns("download_model_data"), "Download", class = "btn-primary", style = "width: 20%;")
         ),
         nav_panel(
           "Model Data",
