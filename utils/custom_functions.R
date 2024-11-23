@@ -24,8 +24,8 @@ make_ui_inputs <- function(ns, show_both_consumption_and_service = TRUE, date_ra
     dateRangeInput(
       ns("date_range_for_service_consumption_comparison"), "Date range:",
       start = "2020-01-01",
-      end = date_range_end_date,
       min = "2020-01-01",
+      end = date_range_end_date,
       max = date_range_max_date,
       format = "mm/dd/yy",
       separator = " - ",
@@ -35,6 +35,74 @@ make_ui_inputs <- function(ns, show_both_consumption_and_service = TRUE, date_ra
   return(ui_inputs)
 }
 
+get_data_dimensions <- function(data_to_use) {
+  data_elements <- data_to_use |>
+    distinct(analytic) |>
+    pull(analytic)
+
+  org_units <- data_to_use |>
+    distinct(org_unit) |>
+    pull(org_unit)
+
+  fp_approaches <- data_to_use |>
+    distinct(method) |>
+    pull(method)
+
+  dates <- data_to_use |>
+    summarise(
+      start_date = period |> min(na.rm = TRUE),
+      end_date = period |> max(na.rm = TRUE)
+    )
+
+  start_date <- dates |> pull(start_date)
+  end_date <- dates |> pull(end_date)
+
+  dims <- list(
+    data_elements = data_elements,
+    org_units = org_units,
+    fp_approaches = fp_approaches,
+    start_date = start_date,
+    end_date = end_date
+    )
+
+  return(dims)
+}
+
+
+update_ui_elements <- function(session, data_to_use){
+
+  new_inputs <- get_data_dimensions(data_to_use)
+
+  updatePickerInput(
+    session,
+    inputId = "org_unit_for_service_consumption_comparison",
+    choices = new_inputs$org_units,
+    selected = new_inputs$org_units[1]
+  )
+
+  updatePickerInput(
+    session,
+    inputId = "analytic_for_service_consumption_comparison",
+    choices = new_inputs$data_elements,
+    selected = new_inputs$data_elements[1]
+  )
+
+  updatePickerInput(
+    session,
+    inputId = "forecasting_approach_for_service_consumption_comparison",
+    choices = new_inputs$fp_approaches,
+    selected = new_inputs$fp_approaches[1]
+  )
+
+  updateDateRangeInput(
+    session,
+    inputId = "date_range_for_service_consumption_comparison",
+    start = new_inputs$start_date,
+    min = new_inputs$start_date,
+    end = new_inputs$end_date,
+    max = new_inputs$end_date
+  )
+}
 
 add_comma_sep_to_y_values <- function() {
   y_values <- list(
@@ -53,16 +121,12 @@ filter_historical_data <- function(historical_data, input) {
     historical_data |>
       filter(
         org_unit == input$org_unit_for_service_consumption_comparison,
-        analytic_name == input$analytic_for_service_consumption_comparison,
+        analytic == input$analytic_for_service_consumption_comparison,
         period |> between(input$date_range_for_service_consumption_comparison[1], input$date_range_for_service_consumption_comparison[2]),
         method %in% c(input$forecasting_approach_for_service_consumption_comparison)
       ) |>
       # arrange data frame in ascending order of date
-      arrange(period) |>
-      # deselect unnecessary columns
-      select(-c(org_unit, outlier_size, year)) |>
-      # round median value to nearest whole number
-      mutate(median_value = round(median_value))
+      arrange(period)
   })
   return(filtered_data)
 }
@@ -88,6 +152,35 @@ notify_client <- function(notification_title, notification_text) {
     )
   )
 }
+
+use_khis_output_notification <- function() {
+  showModal(
+    modalDialog(
+      title = div(tags$h3("Confirm Action", style = heading_style)),
+      "Do you want to overwrite this app's preloaded data with the data you have just extracted?
+      This will affect existing outputs in other tabs",
+      easyClose = FALSE,
+      size = "m",
+      footer = tagList(
+        actionButton(
+          inputId = "use_khis_output",
+          label = "Yes",
+          icon = icon("thumbs-up"),
+          width = NULL,
+          class = "btn-primary", style = "width: 30%;"
+        ),
+        actionButton(
+          inputId = "disregard_khis_output",
+          label = "No",
+          icon = icon("thumbs-down"),
+          width = NULL,
+          class = "btn-primary", style = "width: 30%;"
+        )
+      )
+    )
+  )
+}
+
 
 login_to_dhis2_within_shiny <- function(base_url, username, password) {
 
@@ -126,13 +219,15 @@ login_to_dhis2_within_shiny <- function(base_url, username, password) {
 
 
 run_anomaly_detection <- memoise(
-  function(data_to_anomalize, date_col, value_col) {
+  function(data_to_anomalize) {
     tryCatch(
       expr = {
         print("Running anomaly detection...")
         anomalized_data <- suppressMessages(
           expr = {
-            data_to_anomalize |> anomalize(period, value)
+            data_to_anomalize |>
+              arrange(period) |>
+              anomalize(period, value, .max_anomalies = 0.3, .iqr_alpha = 0.10)
           }
         )
         return(anomalized_data)
@@ -211,10 +306,9 @@ render_data_with_dt <- function(dt_object) {
 }
 
 
-render_data_with_reactable <- function(dataset, dataset_id, columns_to_format) {
+render_data_with_reactable <- function(dataset, columns_to_format) {
   reactable(
     dataset,
-    elementId = dataset_id,
     searchable = FALSE,
     pagination = TRUE,
     highlight = TRUE,
@@ -325,11 +419,12 @@ extraction_data_from_dhis2 <- memoise(
     tryCatch(
       expr = {
         sample_df_if_query_fails <- tibble::tibble(
-          analytic = character(),
           org_unit = character(),
+          analytic = character(),
           period = character(),
           value = numeric()
-        )
+        ) |>
+          mutate(period = ymd(period))
 
         print("Extracting requested data from khis aggregate web server...")
         response <- connection$get_analytics(
@@ -341,8 +436,13 @@ extraction_data_from_dhis2 <- memoise(
 
         if (nrow(response) == 0) {
           return(sample_df_if_query_fails)
+        } else {
+          khis_output <- response |>
+            select(org_unit, analytic, period, value) |>
+            mutate(period = period |> my())
+
+          return(khis_output)
         }
-        return(response)
       },
       error = function(e) {
         notify_client("Error during extraction", e$message)
@@ -438,3 +538,51 @@ standardize_dhis_dx_names <- function(df) {
     }
   )
 }
+
+
+show_in_excel <- function(df, format) {
+  tmp <- paste0(tempfile(), ".xlsx")
+
+  openxlsx::write.xlsx(df, tmp)
+  fs::file_show(path = tmp)
+}
+
+download_data_as_csv <- function(x, name) {
+  downloadHandler(
+    filename = function() {
+      glue("{name}.csv")
+    },
+    content = function(file) {
+      write.csv(x, file, row.names = FALSE)
+    }
+  )
+}
+
+
+update_service_data_with_cyp <- function(data) {
+  tryCatch(
+    expr = {
+      updated_data <- data |>
+        mutate(
+          value = case_when(
+            method == "Service" & analytic == "COCs" ~ value * 2.2,
+            method == "Service" & analytic == "POPs" ~ value * 1.5,
+            method == "Service" & analytic == "Female Condoms" ~ value * 10,
+            method == "Service" & analytic == "Male Condoms" ~ value * 10,
+            .default = value)
+        )
+
+      return(updated_data)
+    },
+    error = function(e){
+      print(e$message)
+      notify_client("CYP Adjustment Error", e$message)
+    }
+  )
+}
+
+
+
+
+
+

@@ -6,7 +6,8 @@ anomaly_detection_and_handling_page_ui <- function(id) {
       card(
         full_screen = FALSE,
         card_header("Filters"),
-        make_ui_inputs(ns, show_both_consumption_and_service = FALSE)
+        make_ui_inputs(ns, show_both_consumption_and_service = FALSE),
+        actionButton(ns("run_anomaly_detection"), "Run Anomaly Detection", class = "btn-primary", style = "width: 100%;")
       ),
       navset_card_underline(
         title = "Anomaly Plots",
@@ -18,13 +19,18 @@ anomaly_detection_and_handling_page_ui <- function(id) {
   )
 }
 
-anomaly_detection_and_handling_page_server <- function(id, data_to_plot) {
+anomaly_detection_and_handling_page_server <- function(id, data_to_plot, listen_to) {
   moduleServer(id, function(input, output, session) {
     filtered_data <- filter_historical_data(data_to_plot, input)
 
+    observeEvent(listen_to, {
+      update_ui_elements(session, data_to_plot)
+    }, ignoreNULL = TRUE)
 
-    observe({
+    observeEvent(input$run_anomaly_detection, {
+
       anomalization_results <- run_anomaly_detection(data_to_anomalize = filtered_data())
+
       plot_title <- glue("Showing data for {input$analytic_for_service_consumption_comparison} -- {input$org_unit_for_service_consumption_comparison}")
 
       if ("data.frame" %in% c(class(anomalization_results))) {

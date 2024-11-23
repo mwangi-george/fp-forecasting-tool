@@ -5,17 +5,23 @@ pacman::p_load(
 
 # Import required datasets
 
-historical_fp_data <- readRDS("data/pinned_df.rds")
-forecast_results <- readRDS("data/final_forecasts_drive.rds")
+historical_fp_data <- readRDS("data/pinned_df.rds") |>
+  rename(analytic = analytic_name) |>
+  # deselect unnecessary columns
+  select(-contains(c("outlier", "year", "median_value")))
+
+
+forecast_results <- readRDS("data/final_forecasts_drive.rds") |>
+  rename(analytic = analytic_name)
 
 fp_consumption_747A_ids <- readRDS("data/fp_consumption_data_element_ids.rds")
 fp_service_711_ids <- readRDS("data/fp_service_data_element_ids.rds")
 counties_and_country_ids <- readRDS("data/level_1_2_ids.rds")
 
 distinct_analytics <- historical_fp_data |>
-  arrange(analytic_name) |>
-  distinct(analytic_name) |>
-  pull(analytic_name)
+  arrange(analytic) |>
+  distinct(analytic) |>
+  pull(analytic)
 
 distinct_organisations <- historical_fp_data |>
   arrange(org_unit) |>

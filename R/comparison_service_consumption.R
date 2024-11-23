@@ -19,8 +19,12 @@ comparison_service_consumption_page_ui <- function(id) {
 }
 
 
-comparison_service_consumption_page_server <- function(id, data_to_plot) {
+comparison_service_consumption_page_server <- function(id, data_to_plot, listen_to) {
   moduleServer(id, function(input, output, session) {
+    observeEvent(listen_to, {
+      update_ui_elements(session, data_to_plot)
+    }, ignoreNULL = TRUE)
+
     filtered_data <- filter_historical_data(data_to_plot, input)
 
     output$comparison_chart <- renderApexchart({

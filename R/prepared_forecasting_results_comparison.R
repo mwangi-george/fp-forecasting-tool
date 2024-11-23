@@ -1,4 +1,4 @@
-forecast_results_consumption_page_ui <- function(id) {
+pre_processed_forecasts_page_ui <- function(id) {
   ns <- NS(id)
   tagList(
     layout_columns(
@@ -21,14 +21,14 @@ forecast_results_consumption_page_ui <- function(id) {
   )
 }
 
-forecast_results_consumption_page_server <- function(id, data_to_plot) {
+pre_processed_forecasts_page_server <- function(id, data_to_plot) {
   moduleServer(id, function(input, output, session) {
 
     filtered_data <- reactive({
       data_to_plot |>
         filter(
           org_unit == input$org_unit_for_service_consumption_comparison,
-          analytic_name == input$analytic_for_service_consumption_comparison,
+          analytic == input$analytic_for_service_consumption_comparison,
           .index |> between(input$date_range_for_service_consumption_comparison[1], input$date_range_for_service_consumption_comparison[2]),
           method %in% c(input$forecasting_approach_for_service_consumption_comparison)
         )
