@@ -63,14 +63,13 @@ get_data_dimensions <- function(data_to_use) {
     fp_approaches = fp_approaches,
     start_date = start_date,
     end_date = end_date
-    )
+  )
 
   return(dims)
 }
 
 
-update_ui_elements <- function(session, data_to_use){
-
+update_ui_elements <- function(session, data_to_use) {
   new_inputs <- get_data_dimensions(data_to_use)
 
   updatePickerInput(
@@ -183,7 +182,6 @@ use_khis_output_notification <- function() {
 
 
 login_to_dhis2_within_shiny <- function(base_url, username, password) {
-
   login_status <- FALSE
 
   tryCatch(
@@ -220,9 +218,11 @@ login_to_dhis2_within_shiny <- function(base_url, username, password) {
 
 run_anomaly_detection <- memoise(
   function(data_to_anomalize) {
+    success <- FALSE
+
     tryCatch(
       expr = {
-        print("Running anomaly detection...")
+        print("Running outlier detection")
         anomalized_data <- suppressMessages(
           expr = {
             data_to_anomalize |>
@@ -230,11 +230,12 @@ run_anomaly_detection <- memoise(
               anomalize(period, value, .max_anomalies = 0.3, .iqr_alpha = 0.10)
           }
         )
-        return(anomalized_data)
+
+        return(list(success = TRUE, res = anomalized_data))
       },
       error = function(e) {
-        print(e$message)
-        return("The selected series is not periodic or has less than two periods. Please review it's trend in the Trend Analysis tab.")
+        print("Anomaly detection failed...")
+        return(list(success = FALSE, res = data_to_anomalize, message = e$message))
       }
     )
   }
@@ -242,56 +243,55 @@ run_anomaly_detection <- memoise(
 
 forecast_with_prophet <- memoise(
   function(data_to_forecast, horizon, growth_type, show_seasonality) {
-    if ((data_to_forecast |> nrow()) > 2) {
-      tryCatch(
-        expr = {
-          print("Building your forecast with Prophet...")
-          model_results <- suppressWarnings(
-            expr = {
-              # Fit the Prophet model
-              fit <- prophet(
-                df = data_to_forecast,
-                growth = growth_type,
-                seasonality.mode = "additive",
-                yearly.seasonality = show_seasonality,
-                interval.width = 0.80
+    success <- FALSE
+
+    tryCatch(
+      expr = {
+        print("Building your forecast with Prophet...")
+        model_results <- suppressWarnings(
+          expr = {
+            # Fit the Prophet model
+            fit <- prophet(
+              df = data_to_forecast,
+              growth = growth_type,
+              seasonality.mode = "additive",
+              yearly.seasonality = show_seasonality,
+              interval.width = 0.80
+            )
+
+            # Create future dates for forecasting
+            future <- make_future_dataframe(fit, periods = horizon, freq = "1 month", include_history = TRUE)
+
+            # Ensure the future dates are beyond the last date in the input data
+            last_date <- tail(data_to_forecast$ds, n = 1)
+            future <- future |> filter(ds > last_date)
+
+            # Generate the forecast
+            forecast <- predict(fit, future)
+
+            # Apply a lower bound to ensure no negative forecasts or intervals
+            forecast <- forecast %>%
+              mutate(
+                yhat = pmax(yhat, 0),
+                yhat_lower = pmax(yhat_lower, 0),
+                yhat_upper = pmax(yhat_upper, 0)
               )
 
-              # Create future dates for forecasting
-              future <- make_future_dataframe(fit, periods = horizon, freq = "1 month", include_history = TRUE)
+            # Return the adjusted forecast
+            forecast
+          }
+        )
 
-              # Ensure the future dates are beyond the last date in the input data
-              last_date <- tail(data_to_forecast$ds, n = 1)
-              future <- future |> filter(ds > last_date)
-
-              # Generate the forecast
-              forecast <- predict(fit, future)
-
-              # Apply a lower bound to ensure no negative forecasts or intervals
-              forecast <- forecast %>%
-                mutate(
-                  yhat = pmax(yhat, 0),
-                  yhat_lower = pmax(yhat_lower, 0),
-                  yhat_upper = pmax(yhat_upper, 0)
-                )
-
-              # Return the adjusted forecast
-              forecast
-            }
-          )
-
-          return(model_results)
-        },
-        error = function(e) {
-          print("Error occurred while building forecast...")
-          return(e$message)
-        }
-      )
-    } else {
-      return("Series has insufficient data to build a forecast. Please review it's historical data in the 'Trend Analytics' tab")
-    }
+        return(list(success = TRUE, res = model_results))
+      },
+      error = function(e) {
+        print("Error occurred while building forecast...")
+        return(list(success = success, res = data_to_forecast, message = "Series has insufficient data to build a forecast"))
+      }
+    )
   }
 )
+
 
 
 render_data_with_dt <- function(dt_object) {
@@ -569,12 +569,13 @@ update_service_data_with_cyp <- function(data) {
             method == "Service" & analytic == "POPs" ~ value * 1.5,
             method == "Service" & analytic == "Female Condoms" ~ value * 10,
             method == "Service" & analytic == "Male Condoms" ~ value * 10,
-            .default = value)
+            .default = value
+          )
         )
 
       return(updated_data)
     },
-    error = function(e){
+    error = function(e) {
       print(e$message)
       notify_client("CYP Adjustment Error", e$message)
     }
@@ -582,7 +583,20 @@ update_service_data_with_cyp <- function(data) {
 }
 
 
-
-
-
-
+render_empty_forecast_visuals <- function(output) {
+  output$forecast_plot <- renderPlotly({
+    NULL
+  })
+  output$monthly_forecast <- renderReactable({
+    NULL
+  })
+  output$yhat <- renderText({
+    NULL
+  })
+  output$yhat_lower <- renderText({
+    NULL
+  })
+  output$yhat_upper <- renderText({
+    NULL
+  })
+}

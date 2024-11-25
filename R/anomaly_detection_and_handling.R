@@ -24,22 +24,24 @@ anomaly_detection_and_handling_page_server <- function(id, data_to_plot, listen_
     filtered_data <- filter_historical_data(data_to_plot, input)
 
     observeEvent(listen_to, {
+      req(listen_to)
       update_ui_elements(session, data_to_plot)
     }, ignoreNULL = TRUE)
 
     observeEvent(input$run_anomaly_detection, {
+      req(input$run_anomaly_detection)
 
       anomalization_results <- run_anomaly_detection(data_to_anomalize = filtered_data())
 
       plot_title <- glue("Showing data for {input$analytic_for_service_consumption_comparison} -- {input$org_unit_for_service_consumption_comparison}")
 
-      if ("data.frame" %in% c(class(anomalization_results))) {
+      if (anomalization_results$success) {
         output$anomalies_plot <- renderPlotly({
-          anomalization_results |>
+          anomalization_results$res |>
             plot_anomalies(period, .title = plot_title, .x_lab = "Date", .y_lab = "Value")
         })
         output$cleaned_anomaly_plot <- renderPlotly({
-          anomalization_results |>
+          anomalization_results$res |>
             plot_anomalies_cleaned(period, .title = plot_title, .x_lab = "Date", .y_lab = "Value")
         })
       } else {
@@ -49,7 +51,7 @@ anomaly_detection_and_handling_page_server <- function(id, data_to_plot, listen_
         output$cleaned_anomaly_plot <- renderPlotly({
           NULL
         })
-        notify_client("Oops!", anomalization_results)
+        notify_client("Oops!", anomalization_results$message)
       }
     })
   })

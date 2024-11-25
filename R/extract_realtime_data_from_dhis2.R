@@ -18,7 +18,7 @@ extract_from_khis_page_ui <- function(id) {
             ns("fp_consumption_data_ids"),
             label = "Choose Consumption Data",
             choices = fp_consumption_747A_ids,
-            selected = fp_consumption_747A_ids[1],
+            selected = "hH9gmEmEhH4.to0Pssxkq4S", # COC dispensed ID
             width = "100%",
             multiple = TRUE,
             options = pickerOptions(actionsBox = TRUE, `live-search` = TRUE)
@@ -27,7 +27,7 @@ extract_from_khis_page_ui <- function(id) {
             ns("fp_service_data_ids"),
             label = "Choose Service Data",
             choices = fp_service_711_ids,
-            selected = fp_service_711_ids[1],
+            selected = "BQmcVE8fex4", # COC dispensed ID
             multiple = TRUE,
             width = "100%",
             options = pickerOptions(actionsBox = TRUE, `live-search` = TRUE)

@@ -103,7 +103,9 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast, lis
     }, ignoreNULL = TRUE)
 
 
-    prophet_input_data <- eventReactive(input$run_forecast, {
+    prophet_input_data <- function() {
+      req(input$run_forecast)
+
       # filter the data using user inputs
       data_to_forecast <- data_to_forecast |>
         filter(
@@ -112,17 +114,20 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast, lis
           method %in% c(input$forecasting_approach_for_service_consumption_comparison)
         )
 
-      # Check for empty data frame
-      if (data_to_forecast |> nrow() == 0) {
-        notify_client("Oops! No data...", "There's no data for the selected inputs")
-        return(NULL)
-      }
-
       if (input$run_anomalization) {
         # run anomaly detection and prepare data for modeling if user wants it
-        data_to_forecast <- data_to_forecast |>
-          run_anomaly_detection() |>
-          mutate(y = round(observed_clean))
+        anomalization_results <- data_to_forecast |>
+          run_anomaly_detection()
+
+        if (anomalization_results$success) {
+          # process was successful
+          data_to_forecast <- anomalization_results$res |>
+            mutate(y = round(observed_clean))
+        } else {
+          # process failed
+          data_to_forecast <- anomalization_results$res |>
+            mutate(y = round(value))
+        }
       } else {
         data_to_forecast <- data_to_forecast |>
           mutate(y = round(value))
@@ -132,10 +137,9 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast, lis
       data_to_forecast |>
         transmute(ds = period, y) |>
         arrange(ds)
-    })
+    }
 
-    prophet_output_data <- eventReactive(input$run_forecast, {
-      req(prophet_input_data())
+    prophet_output_data <- function() {
 
       model_results <- suppressMessages(
         withProgress(
@@ -148,41 +152,25 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast, lis
                 show_seasonality = input$seasonality
               )
             }
-          }, min = 0, max = 10, value = 9, message = "Processing..."
+          }, min = 0, max = 10, value = 7, message = "Processing..."
         )
       )
       return(model_results)
-    })
+    }
 
     observeEvent(input$run_forecast, {
-      req(prophet_input_data())
+      model_input <- prophet_input_data()
 
-      if ("character" %in% class(prophet_output_data())) {
-        notify_client("Processing Error...", prophet_output_data())
+      model_results <- prophet_output_data()
 
-        output$forecast_plot <- renderPlotly({
-          NULL
-        })
-        output$monthly_forecast <- renderReactable({
-          NULL
-        })
-        output$yhat <- renderText({
-          NULL
-        })
-        output$yhat_lower <- renderText({
-          NULL
-        })
-        output$yhat_upper <- renderText({
-          NULL
-        })
-      } else {
+      if (model_results$success) {
         withProgress(
           expr = {
             output$forecast_plot <- renderPlotly({
-              build_prophet_model_results_chart(prophet_input_data(), prophet_output_data(), input)
+              build_prophet_model_results_chart(model_input, model_results$res, input)
             })
 
-            forecast_table_data <- prophet_output_data() |>
+            forecast_table_data <- model_results$res |>
               transmute(
                 Product = input$analytic_for_service_consumption_comparison,
                 `Org Unit` = input$org_unit_for_service_consumption_comparison,
@@ -220,17 +208,12 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast, lis
                 pull(Upper) |>
                 format(big.mark = ", ")
             })
-            output$monthly_forecast <- renderReactable({
-              df_to_render <- forecast_table_data |>
-                select(-c(seasonality, growth_type, anomalies_checked, method))
-
-              df_to_render |>
-                render_data_with_reactable(
-                  columns_to_format = generate_reactable_columns(df_to_render, c("Lower", "Forecast", "Upper"))
-                )
-            })
           }, min = 0, max = 10, value = 9, message = "Building visuals..."
         )
+      } else {
+        print("Condition for null rendering passed................")
+        notify_client("Processing Error...", model_results$message)
+        render_empty_forecast_visuals(output)
       }
     })
   })

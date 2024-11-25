@@ -14,8 +14,8 @@ historical_fp_data <- readRDS("data/pinned_df.rds") |>
 forecast_results <- readRDS("data/final_forecasts_drive.rds") |>
   rename(analytic = analytic_name)
 
-fp_consumption_747A_ids <- readRDS("data/fp_consumption_data_element_ids.rds")
-fp_service_711_ids <- readRDS("data/fp_service_data_element_ids.rds")
+fp_consumption_747A_ids <- readRDS("data/fp_consumption_data_element_ids.rds") |> sort()
+fp_service_711_ids <- readRDS("data/fp_service_data_element_ids.rds") |> sort()
 counties_and_country_ids <- readRDS("data/level_1_2_ids.rds")
 
 distinct_analytics <- historical_fp_data |>
