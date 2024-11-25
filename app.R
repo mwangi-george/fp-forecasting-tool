@@ -41,6 +41,12 @@ ui <- page_navbar(
   tags$head(tags$style(disconnection_notification_style)) # styles.R
 )
 
+# TODO
+# App's reactivity needs to be worked on
+# When new data is detected, fix the logic to update existing data
+#
+
+
 server <- function(input, output) {
   # Initialize reactive value with historical data
   data_to_use <- reactiveVal(value = historical_fp_data)
