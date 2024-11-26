@@ -6,7 +6,7 @@ anomaly_detection_and_handling_page_ui <- function(id) {
       card(
         full_screen = FALSE,
         card_header("Filters"),
-        make_ui_inputs(ns, show_both_consumption_and_service = FALSE),
+        make_ui_inputs(ns, show_both_approaches = FALSE),
         actionButton(ns("run_anomaly_detection"), "Run Anomaly Detection", class = "btn-primary", style = "width: 100%;")
       ),
       navset_card_underline(
@@ -19,14 +19,14 @@ anomaly_detection_and_handling_page_ui <- function(id) {
   )
 }
 
-anomaly_detection_and_handling_page_server <- function(id, data_to_plot, listen_to) {
+anomaly_detection_and_handling_page_server <- function(id, data_to_plot) {
   moduleServer(id, function(input, output, session) {
     filtered_data <- filter_historical_data(data_to_plot, input)
 
-    observeEvent(listen_to, {
-      req(listen_to)
+    observe({
+      data_to_plot
       update_ui_elements(session, data_to_plot)
-    }, ignoreNULL = TRUE)
+    })
 
     observeEvent(input$run_anomaly_detection, {
       req(input$run_anomaly_detection)

@@ -73,10 +73,11 @@ live_prophet_forecasting_model_page_ui <- function(id) {
 }
 
 # Module Server
-live_prophet_forecasting_model_page_server <- function(id, data_to_forecast, listen_to) {
+live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
   moduleServer(id, function(input, output, session) {
 
-    observeEvent(listen_to, {
+    observe({
+      data_to_forecast
 
       new_inputs <- get_data_dimensions(data_to_forecast)
 
@@ -100,7 +101,7 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast, lis
         choices = new_inputs$fp_approaches,
         selected = new_inputs$fp_approaches[1]
       )
-    }, ignoreNULL = TRUE)
+    })
 
 
     prophet_input_data <- function() {

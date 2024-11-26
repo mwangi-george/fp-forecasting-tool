@@ -1,32 +1,31 @@
-make_ui_inputs <- function(ns, show_both_consumption_and_service = TRUE, date_range_max_date = today(), date_range_end_date = today()) {
+make_ui_inputs <- function(ns, start_date = NULL, end_date = NULL, min_date = NULL, max_date = NULL, show_both_approaches = TRUE) {
   ui_inputs <- tagList(
     pickerInput(
       ns("org_unit_for_service_consumption_comparison"),
       label = "Choose Org Unit",
-      choices = distinct_organisations, selected = "Kenya", multiple = FALSE, width = "100%",
+      choices = "", multiple = FALSE, width = "100%",
       options = list(`live-search` = TRUE)
     ),
     pickerInput(
       ns("analytic_for_service_consumption_comparison"),
       label = "Choose Product",
-      choices = distinct_analytics, selected = "COCs", multiple = FALSE, width = "100%",
+      choices = "", multiple = FALSE, width = "100%",
       options = list(`live-search` = TRUE)
     ),
     pickerInput(
       ns("forecasting_approach_for_service_consumption_comparison"),
       label = "Choose Method",
-      choices = forecasting_approaches,
-      selected = forecasting_approaches,
-      multiple = show_both_consumption_and_service,
+      choices = "",
+      multiple = show_both_approaches,
       width = "100%",
       options = list(`live-search` = TRUE)
     ),
     dateRangeInput(
       ns("date_range_for_service_consumption_comparison"), "Date range:",
-      start = "2020-01-01",
-      min = "2020-01-01",
-      end = date_range_end_date,
-      max = date_range_max_date,
+      start = start_date,
+      end = end_date,
+      min = min_date,
+      max = max_date,
       format = "mm/dd/yy",
       separator = " - ",
       width = "100%"
@@ -50,8 +49,8 @@ get_data_dimensions <- function(data_to_use) {
 
   dates <- data_to_use |>
     summarise(
-      start_date = period |> min(na.rm = TRUE),
-      end_date = period |> max(na.rm = TRUE)
+      start_date = min(period, na.rm = TRUE),
+      end_date =  max(period, na.rm = TRUE)
     )
 
   start_date <- dates |> pull(start_date)

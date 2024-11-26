@@ -47,31 +47,37 @@ ui <- page_navbar(
 #
 
 
-server <- function(input, output) {
-  # Initialize reactive value with historical data
-  data_to_use <- reactiveVal(value = historical_fp_data)
+server <- function(input, output, session) {
 
-  # Call initial modules
+  # File path to monitor
+  file_path <- "data/historical_fp_data.rds" # Replace with your actual file path
+
+  # Reactive file reader
+  file_data <- reactiveFileReader(
+    intervalMillis = 1000,  # Check for file changes every 1 second
+    session = session,      # Provide the session object
+    filePath = file_path,   # File to monitor
+    readFunc = readRDS    # Function to read the file
+  )
+
   pre_processed_forecasts_page_server("forecasting_results_comparison", data_to_plot = forecast_results)
   khis_output <- extract_from_khis_page_server("extraction_from_dhis2")
 
-  # Function to load data into modules
-  load_data_into_modules <- function(data, trigger = NULL) {
-    comparison_service_consumption_page_server("service_consumption_comparison", data_to_plot = data, listen_to = trigger)
-    anomaly_detection_and_handling_page_server("anomaly_detection_and_handling", data_to_plot = data, listen_to = trigger)
-    live_prophet_forecasting_model_page_server("prophet_forecasting_model", data_to_forecast = data, listen_to = trigger)
-  }
 
   # Observe changes in KHIS output and handle accordingly
   observe({
+    file_data()
+
+    print(file_data())
+    comparison_service_consumption_page_server("service_consumption_comparison", data_to_plot = file_data())
+    anomaly_detection_and_handling_page_server("anomaly_detection_and_handling", data_to_plot = file_data())
+    live_prophet_forecasting_model_page_server("prophet_forecasting_model", data_to_forecast = file_data())
+  })
+  observe({
     khis_data <- khis_output()
 
-    if (is.null(khis_data)) {
-      # Load modules with pre-loaded data
-      load_data_into_modules(data_to_use())
-    } else {
-      if (khis_data |> nrow() > 0) {
-        # Prompt user to decide whether to overwrite existing data
+    if (!is.null(khis_data)) {
+      if (nrow(khis_output()) > 0) {
         showElement(id = "update_data", anim = TRUE)
       }
     }
@@ -85,8 +91,9 @@ server <- function(input, output) {
   # Handle user's decision to use KHIS output
   observeEvent(input$use_khis_output, {
     removeModal() # Remove the notification modal
-    data_to_use(khis_output() |> update_service_data_with_cyp()) # Overwrite reactive value with KHIS data
-    load_data_into_modules(data_to_use(), trigger = input$use_khis_output) # Load modules with new data
+    khis_output() |>
+      update_service_data_with_cyp() |>
+      saveRDS("data/historical_fp_data.rds")
   })
 
   # Handle user's decision to disregard KHIS output

@@ -6,7 +6,7 @@ pre_processed_forecasts_page_ui <- function(id) {
       card(
         full_screen = FALSE,
         card_header("Filters"),
-        make_ui_inputs(ns, date_range_end_date = forecast_results_end_date, date_range_max_date = forecast_results_max_date, ),
+        make_ui_inputs(ns, show_both_approaches = TRUE),
         p(strong("Models Used")),
         textOutput(ns("model_used_for_consumption")),
         textOutput(ns("model_used_for_service")),
@@ -23,6 +23,11 @@ pre_processed_forecasts_page_ui <- function(id) {
 
 pre_processed_forecasts_page_server <- function(id, data_to_plot) {
   moduleServer(id, function(input, output, session) {
+
+    observe({
+      data_to_plot
+      update_ui_elements(session, data_to_plot)
+    })
 
     filtered_data <- reactive({
       data_to_plot |>

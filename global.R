@@ -10,9 +10,13 @@ historical_fp_data <- readRDS("data/pinned_df.rds") |>
   # deselect unnecessary columns
   select(-contains(c("outlier", "year", "median_value")))
 
+# historical_fp_data |>
+#   saveRDS("data/historical_fp_data.rds")
+
 
 forecast_results <- readRDS("data/final_forecasts_drive.rds") |>
-  rename(analytic = analytic_name)
+  rename(analytic = analytic_name) |>
+  mutate(period = .index)
 
 fp_consumption_747A_ids <- readRDS("data/fp_consumption_data_element_ids.rds") |> sort()
 fp_service_711_ids <- readRDS("data/fp_service_data_element_ids.rds") |> sort()
