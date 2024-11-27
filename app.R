@@ -42,9 +42,8 @@ ui <- page_navbar(
 )
 
 # TODO
-# App's reactivity needs to be worked on
-# When new data is detected, fix the logic to update existing data
-#
+# Optimize server code- use functions
+# Resource: https://chatgpt.com/share/6746b2cb-140c-8009-aa08-b2e698a12525
 
 
 server <- function(input, output, session) {
@@ -66,13 +65,11 @@ server <- function(input, output, session) {
 
   # Observe changes in KHIS output and handle accordingly
   observe({
-    file_data()
-
-    print(file_data())
     comparison_service_consumption_page_server("service_consumption_comparison", data_to_plot = file_data())
     anomaly_detection_and_handling_page_server("anomaly_detection_and_handling", data_to_plot = file_data())
     live_prophet_forecasting_model_page_server("prophet_forecasting_model", data_to_forecast = file_data())
   })
+
   observe({
     khis_data <- khis_output()
 

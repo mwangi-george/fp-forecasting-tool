@@ -10,8 +10,8 @@ historical_fp_data <- readRDS("data/pinned_df.rds") |>
   # deselect unnecessary columns
   select(-contains(c("outlier", "year", "median_value")))
 
-# historical_fp_data |>
-#   saveRDS("data/historical_fp_data.rds")
+historical_fp_data |>
+  saveRDS("data/historical_fp_data.rds")
 
 
 forecast_results <- readRDS("data/final_forecasts_drive.rds") |>
