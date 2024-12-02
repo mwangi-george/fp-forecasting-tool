@@ -41,10 +41,6 @@ ui <- page_navbar(
   tags$head(tags$style(disconnection_notification_style)) # styles.R
 )
 
-# TODO
-# Optimize server code- use functions
-# Resource: https://chatgpt.com/share/6746b2cb-140c-8009-aa08-b2e698a12525
-
 
 server <- function(input, output, session) {
 
@@ -53,7 +49,7 @@ server <- function(input, output, session) {
 
   # Reactive file reader
   file_data <- reactiveFileReader(
-    intervalMillis = 1000,  # Check for file changes every 1 second
+    intervalMillis = 60000,  # Check for file changes every 50 seconds
     session = session,      # Provide the session object
     filePath = file_path,   # File to monitor
     readFunc = readRDS    # Function to read the file
@@ -91,6 +87,8 @@ server <- function(input, output, session) {
     khis_output() |>
       update_service_data_with_cyp() |>
       saveRDS("data/historical_fp_data.rds")
+
+    runjs("location.reload();")  # JavaScript command to reload the page
   })
 
   # Handle user's decision to disregard KHIS output
