@@ -12,7 +12,7 @@ comparison_service_consumption_page_ui <- function(id) {
       card(
         full_screen = TRUE,
         card_header("Trend Analysis"),
-        apexchartOutput(ns("comparison_chart"), height = "100%")
+        apexchartOutput(ns("comparison_chart"), height = "250px")
       )
     )
   )
@@ -21,6 +21,11 @@ comparison_service_consumption_page_ui <- function(id) {
 
 comparison_service_consumption_page_server <- function(id, data_to_plot) {
   moduleServer(id, function(input, output, session) {
+    observe({
+      data_to_plot
+      update_ui_elements(session, data_to_plot, use_both_approaches = TRUE)
+    })
+
     filtered_data <- filter_historical_data(data_to_plot, input)
 
     output$comparison_chart <- renderApexchart({
@@ -31,7 +36,6 @@ comparison_service_consumption_page_server <- function(id, data_to_plot) {
         ) |>
         ax_labs(
           title = glue("Comparison between consumption and service data for over time"),
-          # subtitle = glue("Showing  data for {input$org_unit_for_service_consumption_comparison}"),
           x = "Date",
           y = "Value"
         ) |>

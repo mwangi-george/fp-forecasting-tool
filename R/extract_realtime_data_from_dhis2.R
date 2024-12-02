@@ -18,7 +18,7 @@ extract_from_khis_page_ui <- function(id) {
             ns("fp_consumption_data_ids"),
             label = "Choose Consumption Data",
             choices = fp_consumption_747A_ids,
-            selected = fp_consumption_747A_ids[1],
+            selected = "hH9gmEmEhH4.to0Pssxkq4S", # COC dispensed ID
             width = "100%",
             multiple = TRUE,
             options = pickerOptions(actionsBox = TRUE, `live-search` = TRUE)
@@ -27,7 +27,7 @@ extract_from_khis_page_ui <- function(id) {
             ns("fp_service_data_ids"),
             label = "Choose Service Data",
             choices = fp_service_711_ids,
-            selected = fp_service_711_ids[1],
+            selected = "BQmcVE8fex4", # COC dispensed ID
             multiple = TRUE,
             width = "100%",
             options = pickerOptions(actionsBox = TRUE, `live-search` = TRUE)
@@ -46,7 +46,7 @@ extract_from_khis_page_ui <- function(id) {
             label = "Period",
             start = as.Date("2024-01-01"),
             end = today(),
-            min = as.Date("2020-01-01"),
+            min = as.Date("2021-01-01"),
             max = today(),
             width = "100%"
         ),
@@ -73,7 +73,7 @@ extract_from_khis_page_ui <- function(id) {
         full_screen = TRUE,
         card_header("Extraction Results"),
         reactableOutput(ns("extraction_results_table"), height = "500"),
-        tags$button("Download as CSV", onclick = "Reactable.downloadDataCSV('extraction_results_download_csv')", class = "btn-primary", style = "width: 20%;")
+        downloadButton(ns("extraction_results_export"), "Download", class = "btn-primary", style = "width: 20%;")
       )
     )
   )
@@ -82,18 +82,18 @@ extract_from_khis_page_ui <- function(id) {
 
 extract_from_khis_page_server <- function(id) {
   moduleServer(id, function(input, output, session) {
-    extracted_data <- NULL
     # get namespace
     ns <- session$ns
     dhis_connection <- reactiveVal(NULL)
     base_url <- "https://hiskenya.org"
+    dhis_output <- reactiveVal(NULL)
 
     # observe trigger button
     observeEvent(input$click_here_to_show_khis_login_modal, {
       showModal(modalDialog(
         title = div(tags$h3("Access DHIS2 directly", style = heading_style)),
-        textInput(ns("his_user"), label = "Enter your DHIS2 username", value = "", placeholder = "your_username", width = "100%"),
-        passwordInput(ns("his_pass"), "Enter your DHIS2 password", value = "", width = "100%", placeholder = "your_password"),
+        textInput(ns("his_user"), label = "Enter your DHIS2 username", value = "mikonya", placeholder = "your_username", width = "100%"),
+        passwordInput(ns("his_pass"), "Enter your DHIS2 password", value = "Kenya2030", width = "100%", placeholder = "your_password"),
         actionButton(ns("click_here_to_login_to_dhis2"), "Click here to login", class = "btn-primary", style = "width: 100%;"),
         easyClose = TRUE, size = "m", footer = NULL
       ))
@@ -140,18 +140,23 @@ extract_from_khis_page_server <- function(id) {
           )
 
           if (!is.null(extraction_results)) {
-            extraction_results <- extraction_results |> create_method_column()
+            extraction_results <- extraction_results |>
+              create_method_column()
 
             # standardize data elements names
             if (input$his_output_scheme == "NAME") {
               extraction_results <- extraction_results |> standardize_dhis_dx_names()
             }
 
+            dhis_output(extraction_results)
+
+            file_name <- glue("extraction_results-{today()}")
+            output$extraction_results_export <- download_data_as_csv(extraction_results, file_name)
+
             output$extraction_results_table <- renderReactable({
               print("Rendering data.......")
               extraction_results |>
                 render_data_with_reactable(
-                  dataset_id = "extraction_results_download_csv",
                   columns_to_format = generate_reactable_columns(extraction_results, "value")
                 )
             })
@@ -165,6 +170,6 @@ extract_from_khis_page_server <- function(id) {
       )
     })
 
-    return(extracted_data)
+    return(dhis_output)
   })
 }
