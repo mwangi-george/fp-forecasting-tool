@@ -23,7 +23,7 @@ comparison_service_consumption_page_server <- function(id, data_to_plot) {
   moduleServer(id, function(input, output, session) {
     observe({
       data_to_plot
-      update_ui_elements(session, data_to_plot)
+      update_ui_elements(session, data_to_plot, use_both_approaches = TRUE)
     })
 
     filtered_data <- filter_historical_data(data_to_plot, input)

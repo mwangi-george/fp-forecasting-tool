@@ -68,8 +68,14 @@ get_data_dimensions <- function(data_to_use) {
 }
 
 
-update_ui_elements <- function(session, data_to_use) {
+update_ui_elements <- function(session, data_to_use, use_both_approaches = FALSE) {
   new_inputs <- get_data_dimensions(data_to_use)
+
+  if (use_both_approaches) {
+    fp_approaches <- new_inputs$fp_approaches
+  } else {
+    fp_approaches <- new_inputs$fp_approaches[1]
+  }
 
   updatePickerInput(
     session,
@@ -89,7 +95,7 @@ update_ui_elements <- function(session, data_to_use) {
     session,
     inputId = "forecasting_approach_for_service_consumption_comparison",
     choices = new_inputs$fp_approaches,
-    selected = new_inputs$fp_approaches[1]
+    selected = fp_approaches
   )
 
   updateDateRangeInput(

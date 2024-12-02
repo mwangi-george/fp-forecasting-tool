@@ -26,7 +26,7 @@ pre_processed_forecasts_page_server <- function(id, data_to_plot) {
 
     observe({
       data_to_plot
-      update_ui_elements(session, data_to_plot)
+      update_ui_elements(session, data_to_plot, use_both_approaches = TRUE)
     })
 
     filtered_data <- reactive({
