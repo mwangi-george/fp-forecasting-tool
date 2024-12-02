@@ -20,7 +20,15 @@ ui <- page_navbar(
     base_font = font_google("Inter"),
     navbar_bg = "red"
   ),
-  sidebar = sidebar(open = "closed"),
+  sidebar = sidebar(
+    open = "closed",
+    actionButton(
+      "use_preloaded_data",
+      label = "Use Preloaded Data",
+      class = "btn-primary",
+      style = "width: 100%;"
+    )
+  ),
   footer = tagList(
     hidden(
       actionButton(
@@ -88,12 +96,19 @@ server <- function(input, output, session) {
       update_service_data_with_cyp() |>
       saveRDS("data/historical_fp_data.rds")
 
-    runjs("location.reload();")  # JavaScript command to reload the page
+    runjs("location.reload();")  # reload the app
   })
 
   # Handle user's decision to disregard KHIS output
   observeEvent(input$disregard_khis_output, {
     removeModal() # Remove the notification modal
+  })
+
+  observeEvent(input$use_preloaded_data, {
+    historical_fp_data |>
+      saveRDS("data/historical_fp_data.rds")
+
+    runjs("location.reload();") # reload app
   })
 }
 
