@@ -2,7 +2,7 @@
 FROM rocker/shiny:latest
 
 # Maintainer information
-LABEL maintainer="Mwangi George <mwangigeorge648@gmail.com>"
+LABEL maintainer="Mwangi George <george_mwangi@insupplyhealth.com>"
 
 # system libraries of general use
 ## install debian packages
