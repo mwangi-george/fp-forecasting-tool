@@ -15,7 +15,11 @@ pre_processed_forecasts_page_ui <- function(id) {
       card(
         full_screen = TRUE,
         card_header("Forecasts Results"),
-        apexchartOutput(ns("forecast_plot"), height = "100%")
+        card_body(
+          max_height = "700px",
+          height = "650px",
+          apexchartOutput(ns("forecast_plot"), width = "95%")
+        )
       )
     )
   )
@@ -55,7 +59,8 @@ pre_processed_forecasts_page_server <- function(id, data_to_plot) {
               y = "Value"
             ) |>
             ax_markers(size = 6) |>
-            ax_tooltip(shared = FALSE, fillSeriesColor = TRUE, y = add_comma_sep_to_y_values())
+            ax_tooltip(shared = FALSE, fillSeriesColor = TRUE, y = add_comma_sep_to_y_values()) %>%
+            ax_legend(position = "bottom")
         )
     })
 
