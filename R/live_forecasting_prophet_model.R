@@ -66,7 +66,13 @@ live_prophet_forecasting_model_page_ui <- function(id) {
           full_screen = TRUE,
           plotlyOutput(ns("forecast_plot"), height = "400px")
         ),
-        downloadButton(ns("download_model_data"), "Download Forecast", class = "btn-primary", style = "width: 25%;")
+        tagList(
+          div(
+            actionButton(ns("show_forecast_data_table"), "Display Data Table", class = "btn-primary", style = "width: 25%;"),
+            downloadButton(ns("download_model_data"), "Download Forecast", class = "btn-primary", style = "width: 25%;"),
+            style = "display: flex; gap: 10px;"
+          )
+        )
       )
     )
   )
@@ -74,6 +80,22 @@ live_prophet_forecasting_model_page_ui <- function(id) {
 
 # Module Server
 live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
+
+  model_results_table <- reactiveVal(
+    value = tibble(
+      product = "",
+      org_unit = "",
+      date = "",
+      lower = "",
+      forecast = "",
+      upper = "",
+      # seasonality = "",
+      # growth_type = "",
+      # anomalies_checked = "",
+      # method = ""
+    )
+  )
+
   moduleServer(id, function(input, output, session) {
 
     observe({
@@ -185,9 +207,12 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
                 method = input$forecasting_approach_for_service_consumption_comparison
               )
 
+            model_results_table(forecast_table_data %>% select(-c(method, anomalies_checked, growth_type, seasonality)))
+
             file_name <- glue("{input$analytic_for_service_consumption_comparison}- {input$forecasting_approach_for_service_consumption_comparison}")
 
             output$download_model_data <- forecast_table_data |> download_data_as_csv(file_name)
+            output$download_model_data_via_data_display <- forecast_table_data |> download_data_as_csv(file_name)
 
             # summaries <- forecast_table_data |> summarize(across(4:6, ~ sum(.x, na.rm = TRUE)))
             averages <- forecast_table_data |> summarize(across(4:6, ~ round(mean(.x, na.rm = TRUE))))
@@ -216,6 +241,20 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
         notify_client("Processing Error...", model_results$message)
         render_empty_forecast_visuals(output)
       }
+    })
+
+    # observe trigger button
+    observeEvent(input$show_forecast_data_table, {
+      ns <- session$ns
+      showModal(modalDialog(
+        title = div(tags$h3("Forecasts Results", style = heading_style)),
+        downloadButton(ns("download_model_data_via_data_display"), "Download Forecast", class = "btn-primary", style = "width: 25%;"),
+        model_results_table() |>
+          render_data_with_reactable(
+            columns_to_format = generate_reactable_columns(model_results_table())
+          ),
+        easyClose = TRUE, size = "xl", footer = NULL
+      ))
     })
   })
 }

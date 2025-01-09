@@ -320,7 +320,7 @@ render_data_with_reactable <- function(dataset, columns_to_format) {
     resizable = TRUE,
     bordered = TRUE,
     striped = TRUE,
-    defaultPageSize = 40,
+    defaultPageSize = 10,
     showPageSizeOptions = TRUE,
     pageSizeOptions = c(10, 20, 40, 80, 100),
     columns = columns_to_format,
