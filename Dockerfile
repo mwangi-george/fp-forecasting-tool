@@ -32,6 +32,12 @@ COPY requirements.R ./requirements.R
 # Install R packages
 RUN Rscript /fp_quantification/requirements.R
 
+# Copy new requirements file
+COPY requirements-new.R ./requirements-new.R
+
+# Install new requirements
+RUN Rscript /fp_quantification/requirements-new.R
+
 # Copy the rest of the needed files
 COPY global.R ./global.R
 COPY app.R ./app.R

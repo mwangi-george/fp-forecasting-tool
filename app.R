@@ -18,7 +18,7 @@ ui <- page_navbar(
     version = 5,
     bootswatch = "flatly",
     base_font = font_google("Inter"),
-    navbar_bg = "red"
+    # navbar_bg = "red"
   ),
   sidebar = sidebar(
     open = "closed",

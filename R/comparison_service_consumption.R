@@ -11,11 +11,11 @@ comparison_service_consumption_page_ui <- function(id) {
       ),
       card(
         full_screen = TRUE,
-        card_header("Trend Analysis"),
+        card_header("Trend Analysis: Comparison between consumption and service data for over time", class = "fs-6 fw-bold"),
         card_body(
           # max_height = "700px",
           # height = "650px",
-          apexchartOutput(ns("comparison_chart"), width = "95%")
+          echarts4rOutput(ns("comparison_chart"))
         )
       )
     )
@@ -32,20 +32,29 @@ comparison_service_consumption_page_server <- function(id, data_to_plot) {
 
     filtered_data <- filter_historical_data(data_to_plot, input)
 
-    output$comparison_chart <- renderApexchart({
-      filtered_data() |>
-        apex(
-          type = "spline",
-          mapping = aes(x = as.Date(period), y = as.numeric(value), group = method)
-        ) |>
-        ax_labs(
-          title = glue("Comparison between consumption and service data for over time"),
-          x = "Date",
-          y = "Value"
-        ) |>
-        ax_markers(size = 6) |>
-        ax_tooltip(shared = TRUE, followCursor = TRUE, intersect = FALSE, fillSeriesColor = TRUE, y = add_comma_sep_to_y_values()) %>%
-        ax_legend(position = "bottom")
+    output$comparison_chart <- renderEcharts4r({
+      data <- filtered_data()
+
+      # Convert period to Date format if necessary
+      data$period <- as.Date(data$period)
+
+
+
+      data %>%
+        dplyr::group_by(method) %>%
+        e_charts_("period") %>%
+        e_line_("value", smooth=TRUE, draw = FALSE) %>%
+        e_axis_labels(x = "Date", y = "Value") %>%
+        e_theme("infographic") %>%
+        e_legend(right = 100) %>% # move legend to the right
+        e_tooltip(trigger = "axis") %>%
+        e_toolbox() %>%
+        e_toolbox_feature(
+          feature = "dataZoom"
+        ) %>%
+        e_toolbox_feature(
+          feature = "saveAsImage"
+        )
     })
 
     observe({
