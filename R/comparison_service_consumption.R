@@ -13,8 +13,8 @@ comparison_service_consumption_page_ui <- function(id) {
         full_screen = TRUE,
         card_header("Trend Analysis"),
         card_body(
-          max_height = "700px",
-          height = "650px",
+          # max_height = "700px",
+          # height = "650px",
           apexchartOutput(ns("comparison_chart"), width = "95%")
         )
       )
@@ -44,7 +44,7 @@ comparison_service_consumption_page_server <- function(id, data_to_plot) {
           y = "Value"
         ) |>
         ax_markers(size = 6) |>
-        ax_tooltip(shared = FALSE, fillSeriesColor = TRUE, y = add_comma_sep_to_y_values()) %>%
+        ax_tooltip(shared = TRUE, followCursor = TRUE, intersect = FALSE, fillSeriesColor = TRUE, y = add_comma_sep_to_y_values()) %>%
         ax_legend(position = "bottom")
     })
 

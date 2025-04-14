@@ -214,7 +214,6 @@ live_prophet_forecasting_model_page_server <- function(id, data_to_forecast) {
             output$download_model_data <- forecast_table_data |> download_data_as_csv(file_name)
             output$download_model_data_via_data_display <- forecast_table_data |> download_data_as_csv(file_name)
 
-            # summaries <- forecast_table_data |> summarize(across(4:6, ~ sum(.x, na.rm = TRUE)))
             averages <- forecast_table_data |> summarize(across(4:6, ~ round(mean(.x, na.rm = TRUE))))
 
             output$yhat <- renderText({
