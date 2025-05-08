@@ -16,9 +16,8 @@ ui <- page_navbar(
   title = "FP Forecasting Tool",
   theme = bs_theme(
     version = 5,
-    bootswatch = "zephyr",
-    base_font = font_google("Inter"),
-    navbar_bg = "red"
+    bootswatch = "flatly",
+    base_font = font_google("Inter")
   ),
   sidebar = sidebar(
     open = "closed",
