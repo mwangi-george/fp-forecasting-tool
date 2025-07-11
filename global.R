@@ -1,6 +1,6 @@
 pacman::p_load(
   tidyr, dplyr, purrr, stringr, bslib, shiny, shinyjs, janitor, apexcharter, shinyWidgets, glue, plotly, timetk, shinycssloaders,
-  shinyalert, bsicons, DT, prophet, fs, httr, memoise, dhis2r, tibble, lubridate, thematic, reactable, echarts4r
+  shinyalert, bsicons, DT, prophet, fs, httr, memoise, tibble, lubridate, thematic, reactable, echarts4r
 )
 
 # Import required datasets

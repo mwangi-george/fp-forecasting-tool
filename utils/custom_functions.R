@@ -457,6 +457,74 @@ extraction_data_from_dhis2 <- memoise(
   }
 )
 
+generate_api_url <- function(data_elements, org_units, start_month, end_month, outputIdScheme = "UID") {
+    # Define api parts separately
+    base_url <- "https://hiskenya.org/api/analytics.csv?"
+    data_elements_spec <- paste0("dimension=dx%3A", paste0(data_elements, sep ="", collapse = "%3B"), "&")
+    org_units_spec <- paste0("dimension=ou%3AUSER_ORGUNIT%3B", paste0(org_units, collapse = "%3B"), "&")
+    periods_vector <- seq(from = as.Date(start_month), to = as.Date(end_month), by = "month")
+    periods_vector_formatted <- format(periods_vector, "%Y%m")
+    periods_spec <- paste0("dimension=pe%3A", paste0(periods_vector_formatted, collapse = "%3B"), "&")
+    other_params <- glue("showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=false&skipRounding=false&completedOnly=false&outputIdScheme={outputIdScheme}")
+
+    print(data_elements_spec)
+    print(org_units_spec)
+    print(periods_spec)
+    print(other_params)
+
+    api_url <- glue(base_url, data_elements_spec, org_units_spec, periods_spec, other_params)
+    return(api_url)
+}
+
+
+extraction_data_from_dhis2_with_httr <- memoise(
+    function(dhis_username, dhis_password, data_elements, org_units, start_month, end_month, outputIdScheme = "UID") {
+        tryCatch(
+            expr = {
+                sample_df_if_query_fails <- tibble::tibble(
+                    org_unit = character(),
+                    analytic = character(),
+                    period = character(),
+                    value = numeric()
+                ) |>
+                    mutate(period = ymd(period))
+
+                print("Extracting requested data from khis aggregate web server...")
+
+                response <- generate_api_url(data_elements, org_units, start_month, end_month, outputIdScheme) %>%
+                    GET(url = ., authenticate(dhis_username, dhis_password))
+
+                if (status_code(response) != 200) {
+                    return(sample_df_if_query_fails)
+                }
+
+                response_data <- response %>%
+                    content() %>%
+                    rawToChar(.) %>%
+                    read.csv(text = .) %>%
+                    clean_names() %>%
+                    rename(analytic = data, org_unit = organisation_unit)
+
+                if (nrow(response_data) == 0) {
+                    return(sample_df_if_query_fails)
+                } else {
+                    khis_output <- response_data |>
+                        select(org_unit, analytic, period, value) |>
+                        mutate(period = period |> my())
+
+                    return(khis_output)
+                }
+            },
+            error = function(e) {
+                notify_client("Error during extraction", e$message)
+                return(sample_df_if_query_fails)
+            }
+        )
+    }
+)
+
+
+
 
 generate_text_for_converted_service_products <- function(input, output) {
   product <- input$analytic_for_service_consumption_comparison
@@ -492,6 +560,7 @@ create_method_column <- function(df) {
             .default = "Check this!!!!!!!!!!!!!!!"
           )
         )
+      return(df)
     },
     error = function(e) {
       print("There is chaos here--------------")

@@ -84,7 +84,7 @@ extract_from_khis_page_server <- function(id) {
   moduleServer(id, function(input, output, session) {
     # get namespace
     ns <- session$ns
-    dhis_connection <- reactiveVal(NULL)
+    # dhis_connection <- reactiveVal(NULL)
     base_url <- "https://hiskenya.org"
     dhis_output <- reactiveVal(NULL)
 
@@ -107,36 +107,26 @@ extract_from_khis_page_server <- function(id) {
       req(password)
 
       login_successful <- login_to_dhis2_within_shiny(base_url, username, password)
-      removeModal()
 
       if (login_successful) {
         updateActionButton(session, "click_here_to_show_khis_login_modal", label = "Already logged in! 🚀🚀")
         disable("click_here_to_show_khis_login_modal")
         enable("click_here_to_extract_selected_data_from_khis")
-
-        con <- Dhis2r$new(base_url, username, password)
-        dhis_connection(con)
       }
     })
 
 
     observeEvent(input$click_here_to_extract_selected_data_from_khis, {
-      # format date range from user interface
-      start_date <- input$his_date_range[1]
-      end_date <- input$his_date_range[2]
-
-      periods_vector <- seq(from = as.Date(start_date), to = as.Date(end_date), by = "month")
-      period_formatted <- format(periods_vector, "%Y%m")
-
       withProgress(
         expr = {
-          extraction_results <- extraction_data_from_dhis2(
-            connection = dhis_connection(),
-            consumption_ids = input$fp_consumption_data_ids,
-            service_ids = input$fp_service_data_ids,
-            org_ids = input$his_org_unit,
-            period_range = period_formatted,
-            output_scheme = input$his_output_scheme
+          extraction_results <- extraction_data_from_dhis2_with_httr(
+            dhis_username = input$his_user,
+            dhis_password = input$his_pass,
+            data_elements = c(input$fp_consumption_data_ids, input$fp_service_data_ids),
+            org_units = input$his_org_unit,
+            start_month = input$his_date_range[1],
+            end_month = input$his_date_range[2],
+            outputIdScheme = input$his_output_scheme
           )
 
           if (!is.null(extraction_results)) {
