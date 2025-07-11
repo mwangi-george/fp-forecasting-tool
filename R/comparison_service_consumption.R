@@ -45,7 +45,7 @@ comparison_service_consumption_page_server <- function(id, data_to_plot) {
         e_charts_("period") %>%
         e_line_("value", smooth=TRUE, draw = FALSE) %>%
         e_axis_labels(x = "Date", y = "Value") %>%
-        e_theme("infographic") %>%
+        e_theme("roma") %>%
         e_legend(right = 100) %>% # move legend to the right
         e_tooltip(trigger = "axis") %>%
         e_toolbox() %>%
