@@ -47,6 +47,7 @@ forecast_accuracy_tracker_ui <- function(id) {
         card_header("Forecasting Accuracy Results"),
         card_body(
           echarts4rOutput(ns("forecast_accuracy_plot")),
+          textOutput(ns("adopted_method_text")),
         )
       )
     )
@@ -57,7 +58,11 @@ forecast_accuracy_tracker_server <- function(id) {
   moduleServer(id, function(input, output, session) {
 
     observeEvent(input$update_actual_data, {
-      update_actual_df()
+      withProgress(
+          expr = {
+            update_forecast_accuracy_dataset()
+          }, min = 0, max = 10, value = 7, message = "Extracting..."
+        )
       runjs("location.reload();") # reload the app
     })
 
@@ -72,6 +77,10 @@ forecast_accuracy_tracker_server <- function(id) {
     })
 
     output$forecast_accuracy_plot <- renderEcharts4r({
+      # Calculate min and max values for dynamic Y-axis scaling
+      # y_min <- min(filtered_df()$value, na.rm = TRUE)
+      # y_max <- max(filtered_df()$value, na.rm = TRUE)
+
       filtered_df() %>%
         dplyr::group_by(.type) %>%
         e_charts_("period") %>%
@@ -84,6 +93,17 @@ forecast_accuracy_tracker_server <- function(id) {
         e_toolbox_feature(feature = "dataZoom") %>%
         e_toolbox_feature(feature = "saveAsImage") %>%
         e_title(text = glue("Comparison between Actual & Forecast Data for {input$analytics_to_analyze}"))
+        # e_y_axis(min = y_min * 0.9, max = y_max * 1.1)
+    })
+
+    output$adopted_method_text <- renderText({
+      method <- filtered_df() %>%
+        select(method) %>%
+        filter(method != "Actual Consumption") %>%
+        distinct() %>%
+        pull(method)
+
+      glue("{input$analytics_to_analyze} forecast was generated using the {method} approach")
     })
 
     observe({
@@ -98,6 +118,7 @@ forecast_accuracy_tracker_server <- function(id) {
         tryCatch(
           expr = {
             df <- dataset %>%
+              select(-method) %>%
               pivot_wider(names_from = .type, values_from = value)
 
             if (!"forecast" %in% colnames(df)) {

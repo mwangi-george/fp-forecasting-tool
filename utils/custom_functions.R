@@ -847,7 +847,7 @@ render_empty_forecast_visuals <- function(output) {
 }
 
 
-read_forecast_df <- function() {
+read_ai_forecast_df <- function() {
   wb_path <- here("data/final_forecasts_ai_approach.xlsx")
 
   forecast_df <- readxl::excel_sheets(wb_path) %>%
@@ -860,39 +860,6 @@ read_forecast_df <- function() {
   return(forecast_df)
 }
 
-update_actual_df <- function() {
-  tryCatch(
-    expr = {
-      raw_df <- extraction_data_from_dhis2_with_httr(
-        dhis_username = Sys.getenv("DHIS2_USERNAME"),
-        dhis_password = Sys.getenv("DHIS2_PASSWORD"),
-        data_elements = fp_consumption_747A_ids,
-        org_units = "HfVjCurKxh2",
-        start_month = "2024-10-01",
-        end_month = today() - 30,
-        outputIdScheme = "NAME"
-      )
-      cli_alert_success("Data extracted successfully...")
-
-      actual_df <- raw_df %>%
-        select(-org_unit) %>%
-        standardize_dhis_dx_names() %>%
-        mutate(.type = "actual") %>%
-        bind_rows(read_forecast_df()) # merge with existing forecast data
-
-      actual_df %>%
-        saveRDS("data/forecast_vs_actual_data.rds")
-
-      cli_alert_success("Cleaned and saved successfully...")
-
-      return(actual_df)
-    },
-    error = function(e) {
-      cli::cli_alert_danger(e$message)
-      notify_client("Extraction error", e$message)
-    }
-  )
-}
 
 calculate_accuracy_metrics <- function(data) {
   tryCatch(
@@ -933,6 +900,66 @@ calculate_accuracy_metrics <- function(data) {
     },
     error = function(e) {
       cli_alert_danger(e$message)
+    }
+  )
+}
+
+
+get_and_organize_forecasts <- function() {
+
+  # Source (https://docs.google.com/spreadsheets/d/1zmBECQ2T4y9SUng7XiYpCKnWi86YQoUdwYWSTICGuaw/edit?gid=0#gid=0)
+  amcs <- tibble(
+    analytic = c('COCs', 'Cycle Beads', 'DMPA-IM', 'DMPA-SC', 'EC Pills', 'Female Condoms', 'Hormonal IUCD', 'Implanon', 'Jadelle',
+                 'Levoplant', 'Male Condoms', 'Non-Hormonal IUCD', 'POPs'),
+    value = c(126506, 2141, 208949, 66827, 6547, 32378, 1597, 35833, 38497, 13981, 3094611, 6596, 31566),
+    method = c("Demographic", "Demographic", "Consumption AI", "Demographic", "Consumption AI", "Consumption AI", "Service AI",
+                       "Service AI", "Consumption AI", "Consumption AI", "Demographic", "Consumption Excel", "Consumption AI"),
+    .type = rep("forecast", 13)
+  )
+
+  # Generate the sequence of periods from 2024-10-01 to 2025-10-01
+  periods <- seq.Date(from = as.Date("2024-10-01"), to = as.Date("2025-10-01"), by = "month")
+
+  # Expand to all periods in the future
+  df <- amcs %>%
+    tidyr::expand(analytic, period = periods) %>%
+    left_join(amcs, by = "analytic")
+
+  return(df)
+}
+
+
+
+update_forecast_accuracy_dataset <- function() {
+  tryCatch(
+    expr = {
+      actual_consumption_data <- extraction_data_from_dhis2_with_httr(
+        dhis_username = Sys.getenv("DHIS2_USERNAME"),
+        dhis_password = Sys.getenv("DHIS2_PASSWORD"),
+        data_elements = fp_consumption_747A_ids,
+        org_units = "HfVjCurKxh2",
+        start_month = "2024-10-01",
+        end_month = today() - 30,
+        outputIdScheme = "NAME"
+      )
+      cli_alert_success("Data extracted successfully...")
+
+      forecast_vs_actual_df <- actual_consumption_data %>%
+        select(-org_unit) %>%
+        standardize_dhis_dx_names() %>%
+        mutate(.type = "actual", method = "Actual Consumption") %>%
+        bind_rows(get_and_organize_forecasts()) # merge with existing forecast data
+
+      forecast_vs_actual_df %>%
+        saveRDS("data/forecast_vs_actual_data.rds")
+
+      cli_alert_success("Cleaned and saved successfully...")
+
+      return(forecast_vs_actual_df)
+    },
+    error = function(e) {
+      cli::cli_alert_danger(e$message)
+      notify_client("Extraction error", e$message)
     }
   )
 }
