@@ -1,6 +1,6 @@
 pacman::p_load(
   tidyr, dplyr, purrr, stringr, bslib, shiny, shinyjs, janitor, apexcharter, shinyWidgets, glue, plotly, timetk, shinycssloaders,
-  shinyalert, bsicons, DT, prophet, fs, httr, memoise, tibble, lubridate, thematic, reactable, echarts4r
+  shinyalert, bsicons, DT, prophet, fs, httr, memoise, tibble, lubridate, thematic, reactable, echarts4r, readxl, here, cli
 )
 
 # Import required datasets
@@ -41,6 +41,10 @@ forecast_results_max_date <- forecast_results |>
   pull(latest_date)
 
 forecast_results_end_date <- floor_date(today(), unit = "month") + 360
+
+
+# Forecast vs Actual Data
+forecast_actual_df <- readRDS("data/forecast_vs_actual_data.rds")
 
 
 # TODO

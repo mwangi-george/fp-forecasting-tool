@@ -40,37 +40,60 @@ ui <- page_navbar(
   ),
   nav_item(tags$a("Home", href = "/")),
   nav_spacer(),
-  nav_panel("Trend Analytics", comparison_service_consumption_page_ui("service_consumption_comparison")),
-  nav_panel("Anomaly Detection", anomaly_detection_and_handling_page_ui("anomaly_detection_and_handling")),
-  nav_panel("Forecast Results", pre_processed_forecasts_page_ui("forecasting_results_comparison")),
-  nav_panel("Live Model", live_prophet_forecasting_model_page_ui("prophet_forecasting_model")),
+  nav_panel(
+    "Trend Analytics",
+    comparison_service_consumption_page_ui("service_consumption_comparison")
+  ),
+  nav_panel(
+    "Anomaly Detection",
+    anomaly_detection_and_handling_page_ui("anomaly_detection_and_handling")
+  ),
+  nav_panel(
+    "Forecast Results",
+    pre_processed_forecasts_page_ui("forecasting_results_comparison")
+  ),
+  nav_panel(
+    "Live Model",
+    live_prophet_forecasting_model_page_ui("prophet_forecasting_model")
+  ),
+  nav_panel("Forecast Accuracy", forecast_accuracy_tracker_ui("forecast_accuracy_tracker")),
   nav_panel("Acess DHIS2", extract_from_khis_page_ui("extraction_from_dhis2")),
   tags$head(tags$style(disconnection_notification_style)) # styles.R
 )
 
 
 server <- function(input, output, session) {
-
   # File path to monitor
   file_path <- "data/historical_fp_data.rds" # Replace with your actual file path
 
   # Reactive file reader
   file_data <- reactiveFileReader(
-    intervalMillis = 60000,  # Check for file changes every 50 seconds
-    session = session,      # Provide the session object
-    filePath = file_path,   # File to monitor
-    readFunc = readRDS    # Function to read the file
+    intervalMillis = 60000, # Check for file changes every 50 seconds
+    session = session, # Provide the session object
+    filePath = file_path, # File to monitor
+    readFunc = readRDS # Function to read the file
   )
 
-  pre_processed_forecasts_page_server("forecasting_results_comparison", data_to_plot = forecast_results)
+  pre_processed_forecasts_page_server(
+    "forecasting_results_comparison",
+    data_to_plot = forecast_results
+  )
   khis_output <- extract_from_khis_page_server("extraction_from_dhis2")
-
 
   # Observe changes in KHIS output and handle accordingly
   observe({
-    comparison_service_consumption_page_server("service_consumption_comparison", data_to_plot = file_data())
-    anomaly_detection_and_handling_page_server("anomaly_detection_and_handling", data_to_plot = file_data())
-    live_prophet_forecasting_model_page_server("prophet_forecasting_model", data_to_forecast = file_data())
+    comparison_service_consumption_page_server(
+      "service_consumption_comparison",
+      data_to_plot = file_data()
+    )
+    anomaly_detection_and_handling_page_server(
+      "anomaly_detection_and_handling",
+      data_to_plot = file_data()
+    )
+    live_prophet_forecasting_model_page_server(
+      "prophet_forecasting_model",
+      data_to_forecast = file_data()
+    )
   })
 
   observe({
@@ -95,7 +118,7 @@ server <- function(input, output, session) {
       update_service_data_with_cyp() |>
       saveRDS("data/historical_fp_data.rds")
 
-    runjs("location.reload();")  # reload the app
+    runjs("location.reload();") # reload the app
   })
 
   # Handle user's decision to disregard KHIS output
@@ -109,6 +132,8 @@ server <- function(input, output, session) {
 
     runjs("location.reload();") # reload app
   })
+
+  forecast_accuracy_tracker_server("forecast_accuracy_tracker")
 }
 
 shinyApp(ui, server, options = options(shiny.launch.browser = TRUE))

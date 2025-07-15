@@ -36,14 +36,14 @@ live_prophet_forecasting_model_page_ui <- function(id) {
         full_screen = FALSE,
         card_header("Forecasting Outputs"),
         layout_column_wrap(
-          height = "100px",
+          max_height = "120px",
           value_box(
             title = "Lower Bound AMC",
             value = textOutput(ns("yhat_lower")),
             min_height = "90px",
             max_height = "120px",
             theme = "danger",
-            showcase = bs_icon("arrow-down-right-circle-fill")
+            showcase = bs_icon("arrow-down-right-circle-fill", size = "0.5em")
           ),
           value_box(
             title = "Forecast Estimate AMC",
@@ -51,7 +51,7 @@ live_prophet_forecasting_model_page_ui <- function(id) {
             min_height = "90px",
             max_height = "120px",
             theme = "success",
-            showcase = bs_icon("arrow-right-circle-fill")
+            showcase = bs_icon("arrow-right-circle-fill", size = "0.5em")
           ),
           value_box(
             title = "Upper Bound AMC",
@@ -59,7 +59,7 @@ live_prophet_forecasting_model_page_ui <- function(id) {
             min_height = "90px",
             max_height = "120px",
             theme = "primary",
-            showcase = bs_icon("arrow-up-right-circle-fill")
+            showcase = bs_icon("arrow-up-right-circle-fill", size = "0.5em")
           )
         ),
         card(

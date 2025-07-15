@@ -1,15 +1,25 @@
-make_ui_inputs <- function(ns, start_date = NULL, end_date = NULL, min_date = NULL, max_date = NULL, show_both_approaches = TRUE) {
+make_ui_inputs <- function(
+    ns,
+    start_date = NULL,
+    end_date = NULL,
+    min_date = NULL,
+    max_date = NULL,
+    show_both_approaches = TRUE) {
   ui_inputs <- tagList(
     pickerInput(
       ns("org_unit_for_service_consumption_comparison"),
       label = "Choose Org Unit",
-      choices = "", multiple = FALSE, width = "100%",
+      choices = "",
+      multiple = FALSE,
+      width = "100%",
       options = list(`live-search` = TRUE)
     ),
     pickerInput(
       ns("analytic_for_service_consumption_comparison"),
       label = "Choose Product",
-      choices = "", multiple = FALSE, width = "100%",
+      choices = "",
+      multiple = FALSE,
+      width = "100%",
       options = list(`live-search` = TRUE)
     ),
     pickerInput(
@@ -21,7 +31,8 @@ make_ui_inputs <- function(ns, start_date = NULL, end_date = NULL, min_date = NU
       options = list(`live-search` = TRUE)
     ),
     dateRangeInput(
-      ns("date_range_for_service_consumption_comparison"), "Date range:",
+      ns("date_range_for_service_consumption_comparison"),
+      "Date range:",
       start = start_date,
       end = end_date,
       min = min_date,
@@ -50,7 +61,7 @@ get_data_dimensions <- function(data_to_use) {
   dates <- data_to_use |>
     summarise(
       start_date = min(period, na.rm = TRUE),
-      end_date =  max(period, na.rm = TRUE)
+      end_date = max(period, na.rm = TRUE)
     )
 
   start_date <- dates |> pull(start_date)
@@ -68,7 +79,10 @@ get_data_dimensions <- function(data_to_use) {
 }
 
 
-update_ui_elements <- function(session, data_to_use, use_both_approaches = FALSE) {
+update_ui_elements <- function(
+    session,
+    data_to_use,
+    use_both_approaches = FALSE) {
   new_inputs <- get_data_dimensions(data_to_use)
 
   if (use_both_approaches) {
@@ -110,11 +124,13 @@ update_ui_elements <- function(session, data_to_use, use_both_approaches = FALSE
 
 add_comma_sep_to_y_values <- function() {
   y_values <- list(
-    formatter = htmlwidgets::JS("
+    formatter = htmlwidgets::JS(
+      "
         function(value) {
           return value.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',');
         }
-      ")
+      "
+    )
   )
   return(y_values)
 }
@@ -126,8 +142,13 @@ filter_historical_data <- function(historical_data, input) {
       filter(
         org_unit == input$org_unit_for_service_consumption_comparison,
         analytic == input$analytic_for_service_consumption_comparison,
-        period |> between(input$date_range_for_service_consumption_comparison[1], input$date_range_for_service_consumption_comparison[2]),
-        method %in% c(input$forecasting_approach_for_service_consumption_comparison)
+        period |>
+          between(
+            input$date_range_for_service_consumption_comparison[1],
+            input$date_range_for_service_consumption_comparison[2]
+          ),
+        method %in%
+          c(input$forecasting_approach_for_service_consumption_comparison)
       ) |>
       # arrange data frame in ascending order of date
       arrange(period)
@@ -139,7 +160,7 @@ memoised_login <- memoise(
   function(url, username, password) {
     login <- httr::GET(url, authenticate(username, password))
 
-    print(login |> status_code())
+    cli_alert_info(login |> status_code())
     return(login)
   },
   # result automatically time out after 15 minutes
@@ -171,14 +192,16 @@ use_khis_output_notification <- function() {
           label = "Yes",
           icon = icon("thumbs-up"),
           width = NULL,
-          class = "btn-primary", style = "width: 30%;"
+          class = "btn-primary",
+          style = "width: 30%;"
         ),
         actionButton(
           inputId = "disregard_khis_output",
           label = "No",
           icon = icon("thumbs-down"),
           width = NULL,
-          class = "btn-primary", style = "width: 30%;"
+          class = "btn-primary",
+          style = "width: 30%;"
         )
       )
     )
@@ -192,7 +215,12 @@ login_to_dhis2_within_shiny <- function(base_url, username, password) {
   tryCatch(
     expr = {
       # Check if there's an internet connection and required inputs are not null
-      if (curl::has_internet() && !is.null(base_url) && !is.null(username) && !is.null(password)) {
+      if (
+        curl::has_internet() &&
+          !is.null(base_url) &&
+          !is.null(username) &&
+          !is.null(password)
+      ) {
         # Construct the URL for the API endpoint
         url <- str_c(base_url, "/api/me")
 
@@ -200,16 +228,27 @@ login_to_dhis2_within_shiny <- function(base_url, username, password) {
         login <- memoised_login(url, username, password)
 
         if (status_code(login) == 200L) {
-          notify_client("Login Successful...", glue("Welcome {username}! Select the data your want to extract on the sidebar and click the 'Extract' button."))
+          notify_client(
+            "Login Successful...",
+            glue(
+              "Welcome {username}! Select the data your want to extract on the sidebar and click the 'Extract' button."
+            )
+          )
 
           login_status <- TRUE
           return(login_status)
         } else {
-          notify_client("Login Failed...", "Invalid username/password. Please try again!")
+          notify_client(
+            "Login Failed...",
+            "Invalid username/password. Please try again!"
+          )
           return(login_status)
         }
       } else {
-        notify_client("Network Error", "Please check your internet connection or ensure all fields are filled.")
+        notify_client(
+          "Network Error",
+          "Please check your internet connection or ensure all fields are filled."
+        )
         return(login_status)
       }
     },
@@ -227,7 +266,7 @@ run_anomaly_detection <- memoise(
 
     tryCatch(
       expr = {
-        print("Running outlier detection")
+        cli_alert_info("Running outlier detection")
         anomalized_data <- suppressMessages(
           expr = {
             data_to_anomalize |>
@@ -239,8 +278,12 @@ run_anomaly_detection <- memoise(
         return(list(success = TRUE, res = anomalized_data))
       },
       error = function(e) {
-        print("Anomaly detection failed...")
-        return(list(success = FALSE, res = data_to_anomalize, message = e$message))
+        cli_alert_danger("Anomaly detection failed...")
+        return(list(
+          success = FALSE,
+          res = data_to_anomalize,
+          message = e$message
+        ))
       }
     )
   }
@@ -252,7 +295,7 @@ forecast_with_prophet <- memoise(
 
     tryCatch(
       expr = {
-        print("Building your forecast with Prophet...")
+        cli_alert_info("Building your forecast with Prophet...")
         model_results <- suppressWarnings(
           expr = {
             # Fit the Prophet model
@@ -265,7 +308,12 @@ forecast_with_prophet <- memoise(
             )
 
             # Create future dates for forecasting
-            future <- make_future_dataframe(fit, periods = horizon, freq = "1 month", include_history = TRUE)
+            future <- make_future_dataframe(
+              fit,
+              periods = horizon,
+              freq = "1 month",
+              include_history = TRUE
+            )
 
             # Ensure the future dates are beyond the last date in the input data
             last_date <- tail(data_to_forecast$ds, n = 1)
@@ -290,13 +338,16 @@ forecast_with_prophet <- memoise(
         return(list(success = TRUE, res = model_results))
       },
       error = function(e) {
-        print("Error occurred while building forecast...")
-        return(list(success = success, res = data_to_forecast, message = "Series has insufficient data to build a forecast"))
+          cli_alert_danger("Error occurred while building forecast...")
+        return(list(
+          success = success,
+          res = data_to_forecast,
+          message = "Series has insufficient data to build a forecast"
+        ))
       }
     )
   }
 )
-
 
 
 render_data_with_dt <- function(dt_object) {
@@ -306,7 +357,12 @@ render_data_with_dt <- function(dt_object) {
       extensions = "Buttons",
       editable = TRUE,
       fillContainer = T,
-      options = list(dom = "Brt", buttons = c("excel", "pdf", "copy"), pageLength = 40, ajax = NULL)
+      options = list(
+        dom = "Brt",
+        buttons = c("excel", "pdf", "copy"),
+        pageLength = 40,
+        ajax = NULL
+      )
     )
 }
 
@@ -359,15 +415,15 @@ read_forecasts_data_from_drive <- function() {
   path <- "https://docs.google.com/spreadsheets/d/14h3_V3UZS8HrS5jjmN_SzjBjXwAvEtyKR7IQmTIioj8/"
   tryCatch(
     expr = {
-      print("Importing forecast from drive...")
+        cli_alert_info("Importing forecast from drive...")
       ss <- googledrive::drive_get(path)
       forecasts <- googlesheets4::read_sheet(ss, sheet = "master")
 
-      print("Saving data to disk...")
+      cli_alert_info("Saving data to disk...")
       saveRDS(forecasts, here::here("data/final_forecasts_drive.rds"))
     },
     error = function(e) {
-      print(e$message)
+        cli_alert_danger(e$message)
     }
   )
 }
@@ -389,38 +445,65 @@ retrieve_model_info <- function(dataset, fp_method) {
       }
     },
     error = function(e) {
-      print(e$message)
+        cli_alert_danger(e$message)
     }
   )
 }
 
 
-
 build_prophet_model_results_chart <- function(actual_df, predicted_df, input) {
   plot_ly() |>
     add_trace(
-      data = actual_df, x = ~ds, y = ~y, type = "scatter",
-      mode = "lines+markers", name = "Actual Data",
-      line = list(color = "#E73846"), marker = list(color = "#E73846", size = 5)
+      data = actual_df,
+      x = ~ds,
+      y = ~y,
+      type = "scatter",
+      mode = "lines+markers",
+      name = "Actual Data",
+      line = list(color = "#E73846"),
+      marker = list(color = "#E73846", size = 5)
     ) |>
     add_trace(
-      data = predicted_df, x = ~ds, y = ~yhat,
-      type = "scatter", mode = "lines+markers", line = list(color = "#1C3557"),
-      marker = list(color = "#1C3557", size = 5), name = "Estimate"
+      data = predicted_df,
+      x = ~ds,
+      y = ~yhat,
+      type = "scatter",
+      mode = "lines+markers",
+      line = list(color = "#1C3557"),
+      marker = list(color = "#1C3557", size = 5),
+      name = "Estimate"
     ) |>
     add_ribbons(
-      data = predicted_df, x = ~ds, ymin = ~yhat_lower, ymax = ~yhat_upper,
-      fillcolor = "gray90", line = list(color = "transparent"), name = "Forecast Interval"
+      data = predicted_df,
+      x = ~ds,
+      ymin = ~yhat_lower,
+      ymax = ~yhat_upper,
+      fillcolor = "gray90",
+      line = list(color = "transparent"),
+      name = "Forecast Interval"
     ) |>
     layout(
-      title = str_c(input$org_unit_for_service_consumption_comparison, input$analytic_for_service_consumption_comparison, "Forecast Plot", sep = " "),
-      xaxis = list(title = "Date"), yaxis = list(title = "Value"), showlegend = FALSE
+      title = str_c(
+        input$org_unit_for_service_consumption_comparison,
+        input$analytic_for_service_consumption_comparison,
+        "Forecast Plot",
+        sep = " "
+      ),
+      xaxis = list(title = "Date"),
+      yaxis = list(title = "Value"),
+      showlegend = FALSE
     )
 }
 
 
 extraction_data_from_dhis2 <- memoise(
-  function(connection, consumption_ids, service_ids, org_ids, period_range, output_scheme) {
+  function(
+      connection,
+      consumption_ids,
+      service_ids,
+      org_ids,
+      period_range,
+      output_scheme) {
     tryCatch(
       expr = {
         sample_df_if_query_fails <- tibble::tibble(
@@ -431,7 +514,7 @@ extraction_data_from_dhis2 <- memoise(
         ) |>
           mutate(period = ymd(period))
 
-        print("Extracting requested data from khis aggregate web server...")
+        cli_alert_info("Extracting requested data from khis aggregate web server...")
         response <- connection$get_analytics(
           analytic = c(consumption_ids, service_ids),
           org_unit = c(org_ids),
@@ -457,73 +540,108 @@ extraction_data_from_dhis2 <- memoise(
   }
 )
 
-generate_api_url <- function(data_elements, org_units, start_month, end_month, outputIdScheme = "UID") {
-    # Define api parts separately
-    base_url <- "https://hiskenya.org/api/analytics.csv?"
-    data_elements_spec <- paste0("dimension=dx%3A", paste0(data_elements, sep ="", collapse = "%3B"), "&")
-    org_units_spec <- paste0("dimension=ou%3AUSER_ORGUNIT%3B", paste0(org_units, collapse = "%3B"), "&")
-    periods_vector <- seq(from = as.Date(start_month), to = as.Date(end_month), by = "month")
-    periods_vector_formatted <- format(periods_vector, "%Y%m")
-    periods_spec <- paste0("dimension=pe%3A", paste0(periods_vector_formatted, collapse = "%3B"), "&")
-    other_params <- glue("showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=false&skipRounding=false&completedOnly=false&outputIdScheme={outputIdScheme}")
+generate_api_url <- function(
+    data_elements,
+    org_units,
+    start_month,
+    end_month,
+    outputIdScheme = "UID") {
+  # Define api parts separately
+  base_url <- "https://hiskenya.org/api/analytics.csv?"
+  data_elements_spec <- paste0(
+    "dimension=dx%3A",
+    paste0(data_elements, sep = "", collapse = "%3B"),
+    "&"
+  )
+  org_units_spec <- paste0(
+    "dimension=ou%3AUSER_ORGUNIT%3B",
+    paste0(org_units, collapse = "%3B"),
+    "&"
+  )
+  periods_vector <- seq(
+    from = as.Date(start_month),
+    to = as.Date(end_month),
+    by = "month"
+  )
+  periods_vector_formatted <- format(periods_vector, "%Y%m")
+  periods_spec <- paste0(
+    "dimension=pe%3A",
+    paste0(periods_vector_formatted, collapse = "%3B"),
+    "&"
+  )
+  other_params <- glue(
+    "showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=false&skipRounding=false&completedOnly=false&outputIdScheme={outputIdScheme}"
+  )
 
-    print(data_elements_spec)
-    print(org_units_spec)
-    print(periods_spec)
-    print(other_params)
-
-    api_url <- glue(base_url, data_elements_spec, org_units_spec, periods_spec, other_params)
-    return(api_url)
+  api_url <- glue(
+    base_url,
+    data_elements_spec,
+    org_units_spec,
+    periods_spec,
+    other_params
+  )
+  cli_alert_info(api_url)
+  return(api_url)
 }
 
 
-extraction_data_from_dhis2_with_httr <- memoise(
-    function(dhis_username, dhis_password, data_elements, org_units, start_month, end_month, outputIdScheme = "UID") {
-        tryCatch(
-            expr = {
-                sample_df_if_query_fails <- tibble::tibble(
-                    org_unit = character(),
-                    analytic = character(),
-                    period = character(),
-                    value = numeric()
-                ) |>
-                    mutate(period = ymd(period))
+extraction_data_from_dhis2_with_httr <- function(
+    dhis_username,
+    dhis_password,
+    data_elements,
+    org_units,
+    start_month,
+    end_month,
+    outputIdScheme = "UID"
+    ) {
+  tryCatch(
+    expr = {
+      sample_df_if_query_fails <- tibble::tibble(
+        org_unit = character(),
+        analytic = character(),
+        period = character(),
+        value = numeric()
+      ) |>
+        mutate(period = ymd(period))
 
-                print("Extracting requested data from khis aggregate web server...")
+      cli_alert_info("Extracting requested data from khis aggregate web server...")
 
-                response <- generate_api_url(data_elements, org_units, start_month, end_month, outputIdScheme) %>%
-                    GET(url = ., authenticate(dhis_username, dhis_password))
+      response <- generate_api_url(
+        data_elements,
+        org_units,
+        start_month,
+        end_month,
+        outputIdScheme
+      ) %>%
+        GET(url = ., authenticate(dhis_username, dhis_password))
 
-                if (status_code(response) != 200) {
-                    return(sample_df_if_query_fails)
-                }
+      if (status_code(response) != 200) {
+        return(sample_df_if_query_fails)
+      }
 
-                response_data <- response %>%
-                    content() %>%
-                    rawToChar(.) %>%
-                    read.csv(text = .) %>%
-                    clean_names() %>%
-                    rename(analytic = data, org_unit = organisation_unit)
+      response_data <- response %>%
+        content() %>%
+        rawToChar(.) %>%
+        read.csv(text = .) %>%
+        clean_names() %>%
+        rename(analytic = data, org_unit = organisation_unit)
 
-                if (nrow(response_data) == 0) {
-                    return(sample_df_if_query_fails)
-                } else {
-                    khis_output <- response_data |>
-                        select(org_unit, analytic, period, value) |>
-                        mutate(period = period |> my())
+      if (nrow(response_data) == 0) {
+        return(sample_df_if_query_fails)
+      } else {
+        khis_output <- response_data |>
+          select(org_unit, analytic, period, value) |>
+          mutate(period = period |> my())
 
-                    return(khis_output)
-                }
-            },
-            error = function(e) {
-                notify_client("Error during extraction", e$message)
-                return(sample_df_if_query_fails)
-            }
-        )
+        return(khis_output)
+      }
+    },
+    error = function(e) {
+      notify_client("Error during extraction", e$message)
+      return(sample_df_if_query_fails)
     }
-)
-
-
+  )
+}
 
 
 generate_text_for_converted_service_products <- function(input, output) {
@@ -563,8 +681,8 @@ create_method_column <- function(df) {
       return(df)
     },
     error = function(e) {
-      print("There is chaos here--------------")
-      print(e$message)
+        cli_alert_danger("There is chaos here--------------")
+        cli_alert_danger(e$message)
     }
   )
 }
@@ -584,21 +702,74 @@ standardize_dhis_dx_names <- function(df) {
 
           # standardize names
           analytic = case_when(
-            analytic %in% c("MOH 711 Pills progestin only", "MOH 747A_Progestin only pills") ~ "POPs",
-            analytic %in% c("MOH 711 Rev 2020_IUCD Insertion Non Hormonal", "MOH 747A_Non-Hormonal IUCD") ~ "Non-Hormonal IUCD",
-            analytic %in% c("MOH 711 Client receiving Male condoms", "MOH 747A_Male Condoms") ~ "Male Condoms",
-            analytic %in% c("MOH 747A_Implants (2-Rod) - LNG 75mg (3 years)") ~ "Levoplant",
-            analytic %in% c("MOH 711 Rev 2020_Implants insertion 1 Rod", "MOH 747A_Implants (1-Rod) – ENG 68mg") ~ "Implanon",
-            analytic %in% c("MOH 747A_Implant (2-Rod) – LNG 75mg (5 years)") ~ "Jadelle",
-            analytic %in% c("MOH 711 Rev 2020_IUCD Insertion Hormonal", "MOH 747A_Hormonal IUCD") ~ "Hormonal IUCD",
-            analytic %in% c("MOH 711 Clients receiving Female Condoms", "MOH 747A_Female Condoms") ~ "Female Condoms",
-            analytic %in% c("MOH 711 Emergency contraceptive pill", "MOH 747A_Emergency Contraceptive pills") ~ "EC Pills",
-            analytic %in% c("MOH 711 Rev 2020_FP Injections DMPA- SC", "MOH 747A_DMPA-SC") ~ "DMPA-SC",
-            analytic %in% c("MOH 711 Rev 2020_FP Injections DMPA- IM", "MOH 747A_DMPA-IM") ~ "DMPA-IM",
-            analytic %in% c("MOH 711 Rev 2020_Clients given cycle beads", "MOH 747A_Cycle Beads") ~ "Cycle Beads",
-            analytic %in% c("MOH 711 Pills Combined oral contraceptive", "MOH 747A_Combined Oral contraceptive Pills") ~ "COCs",
-            analytic %in% c("MOH 711 Rev 2020_Implants insertion 2 Rod") ~ "2 Rod",
-            analytic == "g3RQRuh8ikd.REPORTING_RATE" ~ "Consumption Reporting Rate",
+            analytic %in%
+              c(
+                "MOH 711 Pills progestin only",
+                "MOH 747A_Progestin only pills"
+              ) ~
+              "POPs",
+            analytic %in%
+              c(
+                "MOH 711 Rev 2020_IUCD Insertion Non Hormonal",
+                "MOH 747A_Non-Hormonal IUCD"
+              ) ~
+              "Non-Hormonal IUCD",
+            analytic %in%
+              c(
+                "MOH 711 Client receiving Male condoms",
+                "MOH 747A_Male Condoms"
+              ) ~
+              "Male Condoms",
+            analytic %in% c("MOH 747A_Implants (2-Rod) - LNG 75mg (3 years)") ~
+              "Levoplant",
+            analytic %in%
+              c(
+                "MOH 711 Rev 2020_Implants insertion 1 Rod",
+                "MOH 747A_Implants (1-Rod) – ENG 68mg"
+              ) ~
+              "Implanon",
+            analytic %in% c("MOH 747A_Implant (2-Rod) – LNG 75mg (5 years)") ~
+              "Jadelle",
+            analytic %in%
+              c(
+                "MOH 711 Rev 2020_IUCD Insertion Hormonal",
+                "MOH 747A_Hormonal IUCD"
+              ) ~
+              "Hormonal IUCD",
+            analytic %in%
+              c(
+                "MOH 711 Clients receiving Female Condoms",
+                "MOH 747A_Female Condoms"
+              ) ~
+              "Female Condoms",
+            analytic %in%
+              c(
+                "MOH 711 Emergency contraceptive pill",
+                "MOH 747A_Emergency Contraceptive pills"
+              ) ~
+              "EC Pills",
+            analytic %in%
+              c("MOH 711 Rev 2020_FP Injections DMPA- SC", "MOH 747A_DMPA-SC") ~
+              "DMPA-SC",
+            analytic %in%
+              c("MOH 711 Rev 2020_FP Injections DMPA- IM", "MOH 747A_DMPA-IM") ~
+              "DMPA-IM",
+            analytic %in%
+              c(
+                "MOH 711 Rev 2020_Clients given cycle beads",
+                "MOH 747A_Cycle Beads"
+              ) ~
+              "Cycle Beads",
+            analytic %in%
+              c(
+                "MOH 711 Pills Combined oral contraceptive",
+                "MOH 747A_Combined Oral contraceptive Pills"
+              ) ~
+              "COCs",
+            analytic %in% c("MOH 711 Rev 2020_Implants insertion 2 Rod") ~
+              "2 Rod",
+            analytic == "g3RQRuh8ikd.REPORTING_RATE" ~
+              "Consumption Reporting Rate",
             analytic == "UpS2bTVcClZ.REPORTING_RATE" ~ "Service Reporting Rate",
             .default = analytic
           )
@@ -607,7 +778,7 @@ standardize_dhis_dx_names <- function(df) {
       return(df)
     },
     error = function(e) {
-      print(e$message)
+        cli_alert_danger(e$message)
       return(df)
     }
   )
@@ -650,7 +821,7 @@ update_service_data_with_cyp <- function(data) {
       return(updated_data)
     },
     error = function(e) {
-      print(e$message)
+        cli_alert_danger(e$message)
       notify_client("CYP Adjustment Error", e$message)
     }
   )
@@ -673,4 +844,95 @@ render_empty_forecast_visuals <- function(output) {
   output$yhat_upper <- renderText({
     NULL
   })
+}
+
+
+read_forecast_df <- function() {
+  wb_path <- here("data/final_forecasts_ai_approach.xlsx")
+
+  forecast_df <- readxl::excel_sheets(wb_path) %>%
+    map(., ~ read_excel(wb_path, sheet = .x)) %>%
+    list_rbind() %>%
+    rename(analytic = analytic_method) %>%
+    mutate(.type = "forecast") %>%
+    filter(period >= "2024-10-01")
+
+  return(forecast_df)
+}
+
+update_actual_df <- function() {
+  tryCatch(
+    expr = {
+      raw_df <- extraction_data_from_dhis2_with_httr(
+        dhis_username = Sys.getenv("DHIS2_USERNAME"),
+        dhis_password = Sys.getenv("DHIS2_PASSWORD"),
+        data_elements = fp_consumption_747A_ids,
+        org_units = "HfVjCurKxh2",
+        start_month = "2024-10-01",
+        end_month = today() - 30,
+        outputIdScheme = "NAME"
+      )
+      cli_alert_success("Data extracted successfully...")
+
+      actual_df <- raw_df %>%
+        select(-org_unit) %>%
+        standardize_dhis_dx_names() %>%
+        mutate(.type = "actual") %>%
+        bind_rows(read_forecast_df()) # merge with existing forecast data
+
+      actual_df %>%
+        saveRDS("data/forecast_vs_actual_data.rds")
+
+      cli_alert_success("Cleaned and saved successfully...")
+
+      return(actual_df)
+    },
+    error = function(e) {
+      cli::cli_alert_danger(e$message)
+      notify_client("Extraction error", e$message)
+    }
+  )
+}
+
+calculate_accuracy_metrics <- function(data) {
+  tryCatch(
+    expr = {
+        # Extract forecast and actual values from the dataframe
+        forecast <- data$forecast
+        actual <- data$actual
+
+        # Mean Absolute Error (MAE)
+        mae <- mean(abs(actual - forecast))
+
+        # Mean Absolute Percentage Error (MAPE)
+        mape <- mean(abs((actual - forecast) / actual)) * 100
+
+        # Mean Absolute Scaled Error (MASE)
+        mase <- mean(abs(actual - forecast)) / mean(abs(diff(actual)))
+
+        # Symmetric Mean Absolute Percentage Error (SMAPE)
+        smape <- 2 * mean(abs(actual - forecast) / (abs(actual) + abs(forecast))) * 100
+
+        # Root Mean Squared Error (RMSE)
+        rmse <- sqrt(mean((actual - forecast)^2))
+
+        # R-squared (Coefficient of determination)
+        rsq <- 1 - sum((actual - forecast)^2) / sum((actual - mean(actual))^2)
+
+        # Return a named list of metrics
+        metrics <- list(
+            MAE = round(mae, 1),
+            MAPE = round(mape, 1),
+            MASE = round(mase, 1),
+            SMAPE = round(smape, 1),
+            RMSE = round(rmse, 1),
+            Rsquared = round(rsq, 1)
+        )
+
+        return(metrics)
+    },
+    error = function(e) {
+      cli_alert_danger(e$message)
+    }
+  )
 }
