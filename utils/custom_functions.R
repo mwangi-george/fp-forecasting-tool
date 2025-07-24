@@ -1,3 +1,4 @@
+library(memoise)
 make_ui_inputs <- function(
     ns,
     start_date = NULL,

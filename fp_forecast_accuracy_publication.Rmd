@@ -1,0 +1,90 @@
+---
+title: "data_transformation"
+output: html_document
+---
+
+
+# Required Packages
+```{r}
+pacman::p_load(
+    tidyverse, googlesheets4, googledrive, httr, jsonlite, janitor
+)
+```
+
+
+# Fetching Forecasted data by month
+```{r}
+# data source
+worksheet_url <- "https://docs.google.com/spreadsheets/d/1l6PfnoampNQS1oJ-iSIGF9KJM8OBf34Hq3yoxd1WE2I/edit?gid=1210706051#gid=1210706051"
+
+
+# Read and transform
+forecasts_df_clean <- read_sheet(worksheet_url, sheet = "Monthly Forecasted Quantities", skip = 4) %>% 
+    pivot_longer(2:last_col(), names_to = "period", values_to = "value") %>% 
+    mutate(period = my(period), type = "Forecast") %>% 
+    arrange(period) 
+
+forecasts_df_clean
+```
+
+# Actual historical Consumption
+```{r}
+# Data source url, generated using dhis2 data visualizer (csv)
+khis_data_url <- "https://hiskenya.org/api/analytics.csv?dimension=dx%3AhH9gmEmEhH4.to0Pssxkq4S%3BbGGT0F7iRxt.to0Pssxkq4S%3BJ6qnTev1LXw.to0Pssxkq4S%3BhXa1xyUMfTa.to0Pssxkq4S%3BqaBPR9wbWku.to0Pssxkq4S%3BAR7RhdC90IV.to0Pssxkq4S%3BzXbxl6y97mi.to0Pssxkq4S%3BMsS41X1GEFr.to0Pssxkq4S%3BXgJfT71Unkn.to0Pssxkq4S%3BAPbXNRovb5w.to0Pssxkq4S%3BAVDzuypqGt9.to0Pssxkq4S%3BtfPZ6sGgh4q.to0Pssxkq4S%3Bdl4JcBnxu0X.to0Pssxkq4S&dimension=ou%3AUSER_ORGUNIT&dimension=pe%3A202001%3B202002%3B202003%3B202004%3B202005%3B202006%3B202007%3B202008%3B202009%3B202010%3B202011%3B202012%3B202101%3B202102%3B202103%3B202104%3B202105%3B202106%3B202107%3B202108%3B202109%3B202110%3B202111%3B202112%3B202201%3B202202%3B202203%3B202204%3B202205%3B202206%3B202207%3B202208%3B202209%3B202210%3B202211%3B202212%3B202301%3B202302%3B202303%3B202304%3B202305%3B202306%3B202307%3B202308%3B202309%3B202310%3B202311%3B202312%3B202401%3B202402%3B202403%3B202404%3B202405%3B202406%3B202407%3B202408%3B202409%3B202410%3B202411%3B202412%3B202501%3B202502%3B202503%3B202504%3B202505%3B202506&showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=false&skipRounding=false&completedOnly=false&outputIdScheme=NAME"
+
+# dhis2 login credentials
+auth <- authenticate(Sys.getenv("DHIS2_USERNAME"), Sys.getenv("DHIS2_PASSWORD"))
+
+# fetch request from khis
+khis_response <- GET(khis_data_url, auth)
+
+# Unnesting from the returned binary format
+actual_historical_consumption_df <- khis_response %>% 
+    content(.) %>% 
+    rawToChar(.) %>% 
+    read.csv(text = .)
+
+# Transforming to desired formt
+actual_historical_consumption_clean_df <- actual_historical_consumption_df %>% 
+    clean_names() %>%
+    rename(analytic = data, org_unit = organisation_unit) %>% 
+    select(analytic, period, value) |>
+    mutate(period = period |> my(), type = "Actual Consumption") %>% 
+    standardize_dhis_dx_names() %>% 
+    arrange(analytic, period) %>% 
+    filter(period >= "2020-07-01") %>% 
+    rename(product_name = analytic)
+
+actual_historical_consumption_clean_df
+```
+
+# Combine actual with forecast
+```{r}
+actual_historical_consumption_clean_df %>% 
+    bind_rows(forecasts_df_clean) %>% 
+    pivot_wider(names_from = type, values_from = value) %>% 
+    arrange(product_name, period) %>% 
+    # write combine data back to the worksheet
+    write_sheet(worksheet_url, sheet = "Monthly Forecasted Quantities Long Format")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
