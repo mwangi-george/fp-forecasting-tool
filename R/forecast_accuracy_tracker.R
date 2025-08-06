@@ -40,7 +40,7 @@ forecast_accuracy_tracker_ui <- function(id) {
             )
           ),
           p(tags$em("Note: Actual consumption data retrieved from KHIS")),
-          actionButton(ns("update_actual_data"), "Refresh Actual Data", class = "btn-primary", style = "width: 100%;"),
+          # actionButton(ns("update_actual_data"), "Refresh Actual Data", class = "btn-primary", style = "width: 100%;"),
         )
       ),
       card(
@@ -78,8 +78,8 @@ forecast_accuracy_tracker_server <- function(id) {
 
     output$forecast_accuracy_plot <- renderEcharts4r({
       # Calculate min and max values for dynamic Y-axis scaling
-      # y_min <- min(filtered_df()$value, na.rm = TRUE)
-      # y_max <- max(filtered_df()$value, na.rm = TRUE)
+      y_min <- min(filtered_df()$value, na.rm = TRUE)
+      y_max <- max(filtered_df()$value, na.rm = TRUE)
 
       filtered_df() %>%
         dplyr::group_by(.type) %>%
@@ -92,8 +92,8 @@ forecast_accuracy_tracker_server <- function(id) {
         e_toolbox() %>%
         e_toolbox_feature(feature = "dataZoom") %>%
         e_toolbox_feature(feature = "saveAsImage") %>%
-        e_title(text = glue("Comparison between Actual & Forecast Data for {input$analytics_to_analyze}"))
-        # e_y_axis(min = y_min * 0.9, max = y_max * 1.1)
+        e_title(text = glue("Comparison between Actual & Forecast Data for {input$analytics_to_analyze}")) %>%
+        e_y_axis(min = round(y_min * 0.9), max = round(y_max * 1.1))
     })
 
     output$adopted_method_text <- renderText({
