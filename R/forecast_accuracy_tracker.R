@@ -158,11 +158,11 @@ forecast_accuracy_tracker_server <- function(id) {
       })
 
       output$rmse_value <- renderText({
-        metrics_list$RMSE
+        format(metrics_list$RMSE, big.mark = ",")
       })
 
       output$mae_value <- renderText({
-        metrics_list$MAE
+        format(metrics_list$MAE, big.mark = ",")
       })
     })
   })
