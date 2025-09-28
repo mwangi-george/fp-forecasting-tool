@@ -1,33 +1,62 @@
 pre_processed_forecasts_page_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    layout_columns(
-      col_widths = c(3, 9),
-      card(
-        full_screen = FALSE,
-        card_header("Filters"),
-        make_ui_inputs(ns, show_both_approaches = TRUE),
-        p(strong("Models Used")),
-        textOutput(ns("model_used_for_consumption")),
-        textOutput(ns("model_used_for_service")),
-        textOutput(ns("text_for_converted_service_products"))
+    navset_card_underline(
+      title = "Foreacsting",
+      full_screen = TRUE,
+      div(
+        style = "display: flex; gap: 10px; padding: 2px 20px 5px 20px;",
+        div(style = "flex: 1;", pickerInput(
+          ns("org_unit_for_service_consumption_comparison"),
+          label = "Organization Unit",
+          choices = "",
+          multiple = FALSE,
+          width = "100%",
+          options = list(`live-search` = TRUE)
+        )),
+        div(style = "flex: 1;", pickerInput(ns("analytic_for_service_consumption_comparison"),
+          label = "FP Product",
+          choices = "",
+          multiple = FALSE,
+          width = "100%",
+          options = list(`live-search` = TRUE)
+        )),
+        div(style = "flex: 1;", pickerInput(ns("forecasting_approach_for_service_consumption_comparison"),
+          label = "Method",
+          choices = "",
+          multiple = TRUE,
+          width = "100%",
+          options = list(`live-search` = TRUE)
+        )),
+        div(style = "flex: 1;", dateRangeInput(
+          ns("date_range_for_service_consumption_comparison"),
+          "Date range:",
+          start = NULL,
+          end = NULL,
+          min = NULL,
+          max = NULL,
+          format = "mm/dd/yy",
+          separator = " - ",
+          width = "100%"
+        ))
       ),
-      card(
-        full_screen = TRUE,
-        card_header("Forecasts Results"),
-        card_body(
-          # max_height = "700px",
-          # height = "650px",
-          apexchartOutput(ns("forecast_plot"), width = "95%")
+      nav_panel(
+        "",
+        echarts4rOutput(ns("forecast_plot"), height = "550px"),
+        div(
+          style = "display: flex; gap: 10px; align-items: center;",
+          div(p(strong("Models Used"))),
+          div(textOutput(ns("model_used_for_consumption"))),
+          div(textOutput(ns("model_used_for_service"))),
+          div(textOutput(ns("text_for_converted_service_products")))
         )
-      )
+      ),
     )
   )
 }
 
 pre_processed_forecasts_page_server <- function(id, data_to_plot) {
   moduleServer(id, function(input, output, session) {
-
     observe({
       data_to_plot
       update_ui_elements(session, data_to_plot, use_both_approaches = TRUE)
@@ -43,24 +72,27 @@ pre_processed_forecasts_page_server <- function(id, data_to_plot) {
         )
     })
 
+    output$forecast_plot <- renderEcharts4r({
+      plot_data <- filtered_data() |>
+        unite(col = ".method_key", method, .key, sep = " - ") %>%
+        group_by(.method_key)
 
-    output$forecast_plot <- renderApexchart({
-        suppressWarnings(
-          filtered_data() |>
-            unite(col = ".method_key", method, .key, sep = " - ") |>
-            apex(
-              type = "spline",
-              mapping = aes(x = as.Date(.index), y = as.numeric(.value), group = .method_key)
-            ) |>
-            ax_labs(
-              title = glue("Forecast Plot"),
-              # subtitle = glue("Showing  data"),
-              x = "Date",
-              y = "Value"
-            ) |>
-            ax_markers(size = 6) |>
-            ax_tooltip(shared = TRUE, followCursor = TRUE, intersect = FALSE, fillSeriesColor = TRUE, y = add_comma_sep_to_y_values()) %>%
-            ax_legend(position = "bottom")
+
+      plot_data %>%
+        e_charts_(".index") %>%
+        e_line_(".value", smooth = TRUE, draw = FALSE) %>%
+        e_color(c("#FF0000", "#8B0000", "#003153", "#87CEEB")) %>%
+        e_axis_labels(x = "Date", y = "Value") %>%
+        e_title(text = "Looking Ahead: Forecasting Future Trend Based on Historical Trends") %>%
+        e_theme("roma") %>%
+        e_legend(right = 100) %>% # move legend to the right
+        e_tooltip(trigger = "axis") %>%
+        e_toolbox() %>%
+        e_toolbox_feature(
+          feature = "dataZoom"
+        ) %>%
+        e_toolbox_feature(
+          feature = "saveAsImage"
         )
     })
 
@@ -76,6 +108,5 @@ pre_processed_forecasts_page_server <- function(id, data_to_plot) {
 
       generate_text_for_converted_service_products(input, output)
     })
-
   })
 }

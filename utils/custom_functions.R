@@ -103,7 +103,7 @@ update_ui_elements <- function(
     session,
     inputId = "analytic_for_service_consumption_comparison",
     choices = new_inputs$data_elements,
-    selected = new_inputs$data_elements[1]
+    selected = "Implanon"
   )
 
   updatePickerInput(
@@ -574,6 +574,7 @@ generate_api_url <- function(
     "showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=false&skipRounding=false&completedOnly=false&outputIdScheme={outputIdScheme}"
   )
 
+  # Patch together all api parts
   api_url <- glue(
     base_url,
     data_elements_spec,
@@ -581,6 +582,7 @@ generate_api_url <- function(
     periods_spec,
     other_params
   )
+
   cli_alert_info(api_url)
   return(api_url)
 }

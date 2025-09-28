@@ -10,6 +10,7 @@ thematic_shiny(font = "auto")
 # Change ggplot2's default "gray" theme
 theme_set(theme_bw(base_size = 16))
 
+options(scipen = 999)
 
 ui <- page_navbar(
   useShinyjs(), # initialize shinyjs
