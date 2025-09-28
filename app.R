@@ -115,6 +115,8 @@ server <- function(input, output, session) {
   # Handle user's decision to use KHIS output
   observeEvent(input$use_khis_output, {
     removeModal() # Remove the notification modal
+    khis_output %>% head()
+
     khis_output() |>
       update_service_data_with_cyp() |>
       saveRDS("data/historical_fp_data.rds")

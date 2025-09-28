@@ -49,6 +49,7 @@ make_ui_inputs <- function(
 get_data_dimensions <- function(data_to_use) {
   data_elements <- data_to_use |>
     distinct(analytic) |>
+    arrange(desc(analytic)) |>
     pull(analytic)
 
   org_units <- data_to_use |>
@@ -103,7 +104,7 @@ update_ui_elements <- function(
     session,
     inputId = "analytic_for_service_consumption_comparison",
     choices = new_inputs$data_elements,
-    selected = "Implanon"
+    selected = new_inputs$data_elements[1]
   )
 
   updatePickerInput(

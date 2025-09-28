@@ -1,5 +1,5 @@
 pacman::p_load(
-  tidyr, dplyr, purrr, stringr, bslib, shiny, shinyjs, janitor, apexcharter, shinyWidgets, glue, plotly, timetk, shinycssloaders,
+  tidyr, dplyr, purrr, stringr, bslib, shiny, shinyjs, janitor, shinyWidgets, glue, plotly, timetk, shinycssloaders,
   shinyalert, bsicons, DT, prophet, fs, httr, memoise, tibble, lubridate, thematic, reactable, echarts4r, readxl, here, cli
 )
 
@@ -10,16 +10,16 @@ historical_fp_data <- readRDS("data/pinned_df.rds") |>
   # deselect unnecessary columns
   select(-contains(c("outlier", "year", "median_value")))
 
-historical_fp_data |>
-  saveRDS("data/historical_fp_data.rds")
+# historical_fp_data |>
+#   saveRDS("data/historical_fp_data.rds")
 
 
 forecast_results <- readRDS("data/final_forecasts_drive.rds") |>
   rename(analytic = analytic_name) |>
   mutate(period = .index)
 
-fp_consumption_747A_ids <- readRDS("data/fp_consumption_data_element_ids.rds") |> sort()
-fp_service_711_ids <- readRDS("data/fp_service_data_element_ids.rds") |> sort()
+fp_consumption_747A_ids <- readRDS("data/fp_consumption_data_element_ids.rds") |> sort(decreasing = TRUE)
+fp_service_711_ids <- readRDS("data/fp_service_data_element_ids.rds") |> sort(decreasing = TRUE)
 counties_and_country_ids <- readRDS("data/level_1_2_ids.rds")
 
 distinct_analytics <- historical_fp_data |>

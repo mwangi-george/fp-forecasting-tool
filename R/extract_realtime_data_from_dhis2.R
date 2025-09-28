@@ -61,7 +61,7 @@ extract_from_khis_page_ui <- function(id) {
         ),
         pickerInput(
             ns("his_output_scheme"),
-            label = "Select Your Output Scheme",
+            label = "Output Scheme",
             choices = c("NAME", "UID"),
             selected = "NAME",
             multiple = FALSE,
