@@ -15,28 +15,28 @@ pacman::p_load(
 # Fetching Forecasted data by month
 ```{r}
 # data source
-worksheet_url <- "https://docs.google.com/spreadsheets/d/1l6PfnoampNQS1oJ-iSIGF9KJM8OBf34Hq3yoxd1WE2I/edit?gid=1210706051#gid=1210706051"
+worksheet_url <- "https://docs.google.com/spreadsheets/d/1l6PfnoampNQS1oJ-iSIGF9KJM8OBf34Hq3yoxd1WE2I"
 
 
 # Read and transform
 forecasts_df_clean <- read_sheet(worksheet_url, sheet = "Monthly Forecasted Quantities", skip = 4) %>% 
     pivot_longer(2:last_col(), names_to = "period", values_to = "value") %>% 
     mutate(period = my(period), type = "Forecast") %>% 
-    arrange(period) 
+    arrange(product_name, period) 
 
-forecasts_df_clean
+forecasts_df_clean %>% view()
 ```
 
 # Actual historical Consumption
 ```{r}
 # Data source url, generated using dhis2 data visualizer (csv)
-khis_data_url <- "https://hiskenya.org/api/analytics.csv?dimension=dx%3AhH9gmEmEhH4.to0Pssxkq4S%3BbGGT0F7iRxt.to0Pssxkq4S%3BJ6qnTev1LXw.to0Pssxkq4S%3BhXa1xyUMfTa.to0Pssxkq4S%3BqaBPR9wbWku.to0Pssxkq4S%3BAR7RhdC90IV.to0Pssxkq4S%3BzXbxl6y97mi.to0Pssxkq4S%3BMsS41X1GEFr.to0Pssxkq4S%3BXgJfT71Unkn.to0Pssxkq4S%3BAPbXNRovb5w.to0Pssxkq4S%3BAVDzuypqGt9.to0Pssxkq4S%3BtfPZ6sGgh4q.to0Pssxkq4S%3Bdl4JcBnxu0X.to0Pssxkq4S&dimension=ou%3AUSER_ORGUNIT&dimension=pe%3A202001%3B202002%3B202003%3B202004%3B202005%3B202006%3B202007%3B202008%3B202009%3B202010%3B202011%3B202012%3B202101%3B202102%3B202103%3B202104%3B202105%3B202106%3B202107%3B202108%3B202109%3B202110%3B202111%3B202112%3B202201%3B202202%3B202203%3B202204%3B202205%3B202206%3B202207%3B202208%3B202209%3B202210%3B202211%3B202212%3B202301%3B202302%3B202303%3B202304%3B202305%3B202306%3B202307%3B202308%3B202309%3B202310%3B202311%3B202312%3B202401%3B202402%3B202403%3B202404%3B202405%3B202406%3B202407%3B202408%3B202409%3B202410%3B202411%3B202412%3B202501%3B202502%3B202503%3B202504%3B202505%3B202506&showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=false&skipRounding=false&completedOnly=false&outputIdScheme=NAME"
+khis_data_url <- "https://hiskenya.dha.go.ke/api/analytics.csv?dimension=dx%3AhH9gmEmEhH4.to0Pssxkq4S%3BbGGT0F7iRxt.to0Pssxkq4S%3BJ6qnTev1LXw.to0Pssxkq4S%3BhXa1xyUMfTa.to0Pssxkq4S%3BqaBPR9wbWku.to0Pssxkq4S%3BAR7RhdC90IV.to0Pssxkq4S%3BzXbxl6y97mi.to0Pssxkq4S%3BMsS41X1GEFr.to0Pssxkq4S%3BXgJfT71Unkn.to0Pssxkq4S%3BAPbXNRovb5w.to0Pssxkq4S%3BAVDzuypqGt9.to0Pssxkq4S%3BtfPZ6sGgh4q.to0Pssxkq4S%3Bdl4JcBnxu0X.to0Pssxkq4S&dimension=ou%3AUSER_ORGUNIT&dimension=pe%3A202001%3B202002%3B202003%3B202004%3B202005%3B202006%3B202007%3B202008%3B202009%3B202010%3B202011%3B202012%3B202101%3B202102%3B202103%3B202104%3B202105%3B202106%3B202107%3B202108%3B202109%3B202110%3B202111%3B202112%3B202201%3B202202%3B202203%3B202204%3B202205%3B202206%3B202207%3B202208%3B202209%3B202210%3B202211%3B202212%3B202301%3B202302%3B202303%3B202304%3B202305%3B202306%3B202307%3B202308%3B202309%3B202310%3B202311%3B202312%3B202401%3B202402%3B202403%3B202404%3B202405%3B202406%3B202407%3B202408%3B202409%3B202410%3B202411%3B202412%3B202501%3B202502%3B202503%3B202504%3B202505%3B202506%3B202507%3B202508%3B202509%3B202510%3B202511%3B202512%3B202601%3B202602%3B202603%3B202604%3B202605%3B202606&showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=false&skipRounding=false&completedOnly=false&outputIdScheme=NAME"
 
 # dhis2 login credentials
 auth <- authenticate(Sys.getenv("DHIS2_USERNAME"), Sys.getenv("DHIS2_PASSWORD"))
 
 # fetch request from khis
-khis_response <- GET(khis_data_url, auth)
+khis_response <- GET(khis_data_url, auth, config=list(timeout=600))
 
 # Unnesting from the returned binary format
 actual_historical_consumption_df <- khis_response %>% 
@@ -54,18 +54,79 @@ actual_historical_consumption_clean_df <- actual_historical_consumption_df %>%
     arrange(analytic, period) %>% 
     filter(period >= "2020-07-01") %>% 
     rename(product_name = analytic)
-
-actual_historical_consumption_clean_df
 ```
+
+```{r}
+actual_historical_consumption_clean_df |> 
+  filter(
+    product_name == "Cycle Beads",
+    period >= "2026-01-01"
+  ) |> 
+  select(value) |> 
+  as_vector() |> 
+  write( file="", ncolumns=1)
+```
+
 
 # Combine actual with forecast
 ```{r}
 actual_historical_consumption_clean_df %>% 
-    bind_rows(forecasts_df_clean) %>% 
+    # bind_rows(forecasts_df_clean) %>% 
     pivot_wider(names_from = type, values_from = value) %>% 
     arrange(product_name, period) %>% 
     # write combine data back to the worksheet
-    write_sheet(worksheet_url, sheet = "Monthly Forecasted Quantities Long Format")
+    write_sheet(
+        "https://docs.google.com/spreadsheets/d/1l6PfnoampNQS1oJ-iSIGF9KJM8OBf34Hq3yoxd1WE2I", 
+        sheet = "Actual Consumption Data"
+    )
+```
+
+
+
+# Forecast Accuracy Dataframe
+```{r}
+fa_df_raw <- read_sheet(worksheet_url, sheet = "Forecasts April 2023 to 2024 per product", skip = 2)
+  
+fa_df_raw |>   
+    # remove empty rows
+    remove_empty(which = "rows") |> 
+    # format the period column to date type
+    mutate(Period = ymd(Period)) |> 
+    pivot_longer(3:9, names_to = "method", values_to = "value") |> 
+    # standardize column names
+    clean_names() |>
+    # Save copy to disk
+    write_csv("data/forecasted_vs_actual_values_per_method.csv")
+```
+
+
+
+# Cleaning the dataset
+```{r}
+fa_df_clean <- fa_df |>
+    
+
+fa_df_clean
+```
+
+
+
+```{r}
+fa_df_clean |> 
+    pivot_longer(actual_consumption:consumption_lmis, names_to = "method", values_to = "value") |> 
+    filter(product == "Implanon", forecast_type == "Main") |> 
+    arrange(period) |> 
+    dplyr::group_by(method) |> 
+    e_charts_("period") |> 
+    e_line_("value", smooth = TRUE, draw = FALSE) |> 
+    e_axis_labels(x = "Date", y = "Value") |> 
+    e_title("Actual Vs Forecasts") |> 
+    e_theme("roma") |> 
+    e_legend() |>
+    e_tooltip(trigger = "axis") |> 
+    e_toolbox() |> 
+    e_toolbox_feature(feature = "dataZoom") |> 
+    e_toolbox_feature(feature = "saveAsImage")
 ```
 
 
@@ -73,8 +134,341 @@ actual_historical_consumption_clean_df %>%
 
 
 
+```{r}
+library(dplyr) 
+library(tidyr)
+library(echarts4r)
+library(htmlwidgets) 
+
+# 1) Define a named color map (edit these names to match your real method names) 
+method_color_map <- c( 
+    actual_consumption = "#4E79A7", # blue 
+    consumption_lmis = "#F28E2B", # orange
+    service_ai = "#59A14F", # green 
+    consumption_ai = "#E15759", # red 
+    demographic = "#B07AA1", # purple 
+    service_excel = "#9C755F", # brown 
+    consumption_excel = "pink" ) 
+
+# 2) Prepare data first (so we can control series order + colors) 
+df_plot <- fa_df_clean |> 
+    pivot_longer( cols = actual_consumption:consumption_lmis, names_to = "method", values_to = "value" ) |>
+    filter(product == "DMPA-IM", forecast_type == "Main") |> 
+    arrange(period) 
+
+# Stable method order (appears in legend + determines color assignment order) 
+
+method_order <- df_plot |> 
+    distinct(method) |> 
+    arrange(method) |> 
+    pull(method) 
+
+df_plot <- df_plot |> 
+    mutate(method = factor(method, levels = method_order)) 
+
+# Build palette in EXACT series order (unnamed vector for echarts4r) 
+palette_in_order <- unname(method_color_map[method_order]) 
+# If any methods weren't defined in your map, give them a fallback color # (prevents NA colors causing unexpected behavior)
+
+fallback <- c("#76B7B2", "#EDC948", "#FF9DA7", "#BAB0AC", "#1F77B4", "#2CA02C") 
+
+na_idx <- which(is.na(palette_in_order)) 
+
+if (length(na_idx) > 0) 
+    { palette_in_order[na_idx] <- rep(fallback, length.out = length(na_idx)) } 
+
+# 3) Plot 
+
+df_plot |> 
+    group_by(method) |> 
+    e_charts_(x = "period") |> 
+    e_line_( 
+        serie = "value",
+        smooth = T, 
+        showSymbol = TRUE, 
+        symbol = "circle",
+        symbolSize = 6, 
+        emphasis = list( focus = "series", scale = TRUE ) 
+        ) |> 
+    # IMPORTANT: e_color expects an ordered palette vector (not a named map) 
+    e_color(palette_in_order) |> 
+    e_title( 
+        text = "Actual Vs Forecasts — Implanon",
+        subtext = "Main forecast type • Hover to highlight • Zoom to inspect periods" ) |>
+    e_axis_labels(x = "Date", y = NULL) |> 
+    e_legend( 
+        orient = "vertical", 
+        right = 10, 
+        top = "middle", 
+        type = "scroll"
+        ) |> 
+    # remove grid lines
+    e_x_axis(splitLine = list(show = FALSE)) |>
+    e_y_axis(splitLine = list(show = FALSE)) |>
+    # Tooltip: use param.value, which is usually [x, y] 
+    e_tooltip( 
+        trigger = "axis", 
+        axisPointer = list(type = "line"),
+        formatter = JS("
+          function(params){
+            if(!params || !params.length) return '';
+            var d = new Date(params[0].axisValue);
+            var dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    
+            var s = '<b>' + dateStr + '</b><br/>';
+            params.forEach(function(p){
+              var v = p.value;
+              if (Array.isArray(v)) v = v[1];
+              var val = (v == null) ? '-' : Number(v).toLocaleString();
+              s += p.marker + ' ' + p.seriesName + ': <b>' + val + '</b><br/>';
+            });
+            return s;
+          }
+        ")
+        ) |>
+    e_grid(left = 60, right = 200, top = 70, bottom = 60) |> 
+    e_datazoom(type = "inside") |> 
+    e_datazoom(type = "slider") |> 
+    e_theme("roma") |>
+    e_toolbox() |> 
+    e_toolbox_feature("dataZoom") |>
+    e_toolbox_feature("restore") |> 
+    e_toolbox_feature("saveAsImage")
+```
 
 
+```{r}
+library(dplyr)
+library(tidyr)
+library(apexcharter)
+library(htmlwidgets)
+
+# Color map (names must match the series names you create)
+method_color_map <- c(
+  actual_consumption = "#4E79A7",
+  consumption_lmis   = "#F28E2B",
+  service_ai         = "#59A14F",
+  consumption_ai     = "#E15759",
+  demographic        = "#B07AA1",
+  service_excel      = "#9C755F",
+  consumption_excel  = "pink"
+)
+
+# 1) Build a long dataset (robust: pivot only columns that exist)
+method_cols <- intersect(names(method_color_map), names(fa_df_clean))
+```
+
+
+```{r}
+df_long <- fa_df_clean |>
+  pivot_longer(
+    cols = any_of(method_cols),
+    names_to = "method",
+    values_to = "value"
+  ) 
+
+# max actual period
+actual_period_max <- df_long |> 
+    filter(!is.na(value), method == "actual_consumption", ) |>
+    filter(period == max(period)) |> 
+    distinct(period) |> 
+    pull(period)
+
+df_long_filtered <- df_long |> 
+  filter(product == "DMPA-IM", forecast_type == "Main", period <= actual_period_max) |>
+  arrange(period) |>
+  mutate(
+    # Force story order: Actual first, then the rest
+    method = factor(method, levels = c("actual_consumption", setdiff(sort(unique(method)), "actual_consumption")))
+  )
+
+series_levels <- levels(df_long_filtered$method)
+n_series <- length(series_levels)
+
+# 2) Style vectors: Actual (index 1) thick+solid; Forecasts dashed+thin
+stroke_width <- c(4, rep(2, max(0, n_series - 1)))
+dash_array   <- c(0, rep(6, max(0, n_series - 1)))    # 0 = solid, 6 = dashed spacing
+marker_size  <- c(3, rep(5, max(0, n_series - 1)))
+
+# 3) Build the chart
+apex(
+  data = df_long_filtered,
+  type = "spline",
+  mapping = aes(x = period, y = value, group = method)
+) %>%
+  # Exact colors by series name
+  ax_colors_manual(as.list(method_color_map)) %>%
+
+  # Actual vs Forecast styling
+  ax_stroke(width = stroke_width, dashArray = dash_array) %>%
+  ax_markers(size = 5) %>%
+
+  # Legend on the right
+  ax_legend(position = "bottom") %>%
+
+  # Remove grid lines (both x & y)
+  ax_grid(
+    xaxis = list(lines = list(show = FALSE)),
+    yaxis = list(lines = list(show = FALSE))
+  ) %>%
+
+  # Remove y-axis title
+  ax_yaxis(
+      title = list(text = ""),
+      labels = list(
+      formatter = JS("
+        function (val) {
+          return val.toLocaleString();
+        }
+      ")
+    )
+    ) %>%
+
+  # Tooltip: shared across series + nicely formatted numbers
+  ax_tooltip(
+    shared = TRUE,
+    y = list(formatter = format_num(","))
+  ) %>%
+
+  # Titles
+  ax_title("Actual Vs Forecasts — Implanon") %>%
+  ax_subtitle("Actual = thick solid • Forecasts = thin dashed • Hover to compare methods")
+
+```
+
+
+
+# function 
+```{r}
+
+generate_forecast_accuracy_chart <- function(data, product_name, forecast_series_type) {
+    # Color map (names must match the series names you create)
+    method_color_map <- c(
+      actual_consumption = "#4E79A7",
+      consumption_lmis   = "#F28E2B",
+      service_ai         = "#59A14≥F",
+      consumption_ai     = "#E15759",
+      demographic        = "#B07AA1",
+      service_excel      = "#9C755F",
+      consumption_excel  = "pink"
+    )
+    
+    series_levels <- levels(data$method)
+    n_series <- length(series_levels)
+    
+    # 2) Style vectors: Actual (index 1) thick+solid; Forecasts dashed+thin
+    stroke_width <- c(4, rep(2, max(0, n_series - 1)))
+    dash_array   <- c(0, rep(6, max(0, n_series - 1)))    # 0 = solid, 6 = dashed spacing
+    marker_size  <- c(3, rep(5, max(0, n_series - 1)))
+    
+    # 3) Build the chart
+    apex(
+      data = data,
+      type = "spline",
+      mapping = aes(x = period, y = value, group = method)
+    ) %>%
+      # Exact colors by series name
+      ax_colors_manual(as.list(method_color_map)) %>%
+    
+      # Actual vs Forecast styling
+      ax_stroke(width = stroke_width, dashArray = dash_array) %>%
+      ax_markers(size = 5) %>%
+    
+      # Legend on the right
+      ax_legend(position = "bottom") %>%
+    
+      # Remove grid lines (both x & y)
+      ax_grid(
+        xaxis = list(lines = list(show = FALSE)),
+        yaxis = list(lines = list(show = FALSE))
+      ) %>%
+    
+      # Remove y-axis title
+      ax_yaxis(
+          title = list(text = ""),
+          labels = list(
+          formatter = JS("
+            function (val) {
+              return val.toLocaleString();
+            }
+          ")
+        )
+        ) %>%
+    
+      # Tooltip: shared across series + nicely formatted numbers
+      ax_tooltip(
+        shared = TRUE,
+        y = list(formatter = format_num(","))
+      ) %>%
+    
+      # Titles
+      ax_title("Actual Vs Forecasts — Implanon") %>%
+      ax_subtitle("Actual = thick solid • Forecasts = thin dashed • Hover to compare methods")
+}
+```
+
+
+```{r}
+
+test_df <- fa_df_clean %>%
+        filter(
+          product == "Jadelle",
+          forecast_type == "Main",
+          year(period) %in% c("2024", "2023", "2025"),
+          month(period, label = TRUE, abbr = FALSE) %in% c(month.name)
+        ) |>
+        arrange(period) |>
+        mutate(
+        # Force story order: Actual first, then the rest
+        method = factor(
+            method,
+            levels = c("actual_consumption", setdiff(sort(unique(method)), "actual_consumption")))
+      )
+
+test_df |> 
+generate_forecast_accuracy_chart()
+```
+
+
+```{r}
+
+
+
+test_df |> write_csv(file = "test.csv")
+    calculate_accuracy_metrics_all_methods()
+```
+
+
+
+
+```{r}
+
+metrics <- calculate_forecast_accuracy_all_methods(test_df)   # your function output
+make_forecast_accuracy_gt_table(metrics)
+
+```
+
+
+```{r}
+
+test_df |>
+  add_financial_year() |> 
+  group_by(financial_year) |>
+  group_split() |>
+  map(
+    ~ calculate_forecast_accuracy_all_methods(.x) |>
+      # mutate(
+      #   year = .x |>
+      #     distinct(year) |>
+      #     pull(year)
+      # ) |>
+      make_forecast_accuracy_gt_table()
+  )
+
+test_df |> 
+  add_financial_year()
+
+```
 
 
 

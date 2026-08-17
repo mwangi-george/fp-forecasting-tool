@@ -40,7 +40,18 @@ comparison_service_consumption_page_ui <- function(id) {
           width = "100%"
         ))
       ),
-      nav_panel("", echarts4rOutput(ns("comparison_chart"), height = "550px"), textOutput(ns("text_for_converted_service_products"))),
+      nav_panel(
+        "",
+        echarts4rOutput(ns("comparison_chart"), height = "550px"),
+        div(
+          style = "display: flex; gap: 10px;",
+          textOutput(ns("text_for_converted_service_products")),
+          tags$a(
+            href = "https://docs.google.com/document/d/1tGPVem3OLj5Ua49JL1U8kTAdB1xN_r721BKV1YD_BOA/",
+            target = "_blank",
+            "Reference")
+        )
+      ),
     )
   )
 }

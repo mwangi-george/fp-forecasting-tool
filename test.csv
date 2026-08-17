@@ -1,0 +1,85 @@
+product,period,forecast_type,adopted,method,value
+Jadelle,2024-01-01,Main,Consumption AI,Actual Consumption,42587
+Jadelle,2024-01-01,Main,Consumption AI,Service Excel,26302
+Jadelle,2024-01-01,Main,Consumption AI,Service AI,45497.52
+Jadelle,2024-01-01,Main,Consumption AI,Consumption Excel,28610
+Jadelle,2024-01-01,Main,Consumption AI,Consumption AI,28466
+Jadelle,2024-01-01,Main,Consumption AI,Demographic,39306
+Jadelle,2024-01-01,Main,Consumption AI,Consumption LMIS,NA
+Jadelle,2024-02-01,Main,Consumption AI,Actual Consumption,39925
+Jadelle,2024-02-01,Main,Consumption AI,Service Excel,26302
+Jadelle,2024-02-01,Main,Consumption AI,Service AI,46334.16
+Jadelle,2024-02-01,Main,Consumption AI,Consumption Excel,28610
+Jadelle,2024-02-01,Main,Consumption AI,Consumption AI,28272
+Jadelle,2024-02-01,Main,Consumption AI,Demographic,39306
+Jadelle,2024-02-01,Main,Consumption AI,Consumption LMIS,NA
+Jadelle,2024-03-01,Main,Consumption AI,Actual Consumption,36923
+Jadelle,2024-03-01,Main,Consumption AI,Service Excel,26302
+Jadelle,2024-03-01,Main,Consumption AI,Service AI,47143.439999999995
+Jadelle,2024-03-01,Main,Consumption AI,Consumption Excel,28610
+Jadelle,2024-03-01,Main,Consumption AI,Consumption AI,28136
+Jadelle,2024-03-01,Main,Consumption AI,Demographic,39306
+Jadelle,2024-03-01,Main,Consumption AI,Consumption LMIS,NA
+Jadelle,2024-04-01,Main,Consumption AI,Actual Consumption,33995
+Jadelle,2024-04-01,Main,Consumption AI,Service Excel,26302
+Jadelle,2024-04-01,Main,Consumption AI,Service AI,47980.08
+Jadelle,2024-04-01,Main,Consumption AI,Consumption Excel,28610
+Jadelle,2024-04-01,Main,Consumption AI,Consumption AI,27804
+Jadelle,2024-04-01,Main,Consumption AI,Demographic,39306
+Jadelle,2024-04-01,Main,Consumption AI,Consumption LMIS,NA
+Jadelle,2024-05-01,Main,Consumption AI,Actual Consumption,36880
+Jadelle,2024-05-01,Main,Consumption AI,Service Excel,26302
+Jadelle,2024-05-01,Main,Consumption AI,Service AI,48816.72
+Jadelle,2024-05-01,Main,Consumption AI,Consumption Excel,28610
+Jadelle,2024-05-01,Main,Consumption AI,Consumption AI,27496
+Jadelle,2024-05-01,Main,Consumption AI,Demographic,39306
+Jadelle,2024-05-01,Main,Consumption AI,Consumption LMIS,NA
+Jadelle,2024-06-01,Main,Consumption AI,Actual Consumption,37214
+Jadelle,2024-06-01,Main,Consumption AI,Service Excel,26302
+Jadelle,2024-06-01,Main,Consumption AI,Service AI,49599.36
+Jadelle,2024-06-01,Main,Consumption AI,Consumption Excel,28610
+Jadelle,2024-06-01,Main,Consumption AI,Consumption AI,27232
+Jadelle,2024-06-01,Main,Consumption AI,Demographic,39306
+Jadelle,2024-06-01,Main,Consumption AI,Consumption LMIS,NA
+Jadelle,2024-07-01,Main,Consumption AI,Actual Consumption,43185
+Jadelle,2024-07-01,Main,Consumption AI,Service Excel,34392
+Jadelle,2024-07-01,Main,Consumption AI,Service AI,34392
+Jadelle,2024-07-01,Main,Consumption AI,Consumption Excel,37770
+Jadelle,2024-07-01,Main,Consumption AI,Consumption AI,37843
+Jadelle,2024-07-01,Main,Consumption AI,Demographic,46855
+Jadelle,2024-07-01,Main,Consumption AI,Consumption LMIS,NA
+Jadelle,2024-08-01,Main,Consumption AI,Actual Consumption,43880
+Jadelle,2024-08-01,Main,Consumption AI,Service Excel,34392
+Jadelle,2024-08-01,Main,Consumption AI,Service AI,34392
+Jadelle,2024-08-01,Main,Consumption AI,Consumption Excel,37770
+Jadelle,2024-08-01,Main,Consumption AI,Consumption AI,37843
+Jadelle,2024-08-01,Main,Consumption AI,Demographic,46855
+Jadelle,2024-08-01,Main,Consumption AI,Consumption LMIS,NA
+Jadelle,2024-09-01,Main,Consumption AI,Actual Consumption,44338
+Jadelle,2024-09-01,Main,Consumption AI,Service Excel,34392
+Jadelle,2024-09-01,Main,Consumption AI,Service AI,34392
+Jadelle,2024-09-01,Main,Consumption AI,Consumption Excel,37770
+Jadelle,2024-09-01,Main,Consumption AI,Consumption AI,37843
+Jadelle,2024-09-01,Main,Consumption AI,Demographic,46855
+Jadelle,2024-09-01,Main,Consumption AI,Consumption LMIS,NA
+Jadelle,2024-10-01,Main,Consumption AI,Actual Consumption,44169
+Jadelle,2024-10-01,Main,Consumption AI,Service Excel,34392
+Jadelle,2024-10-01,Main,Consumption AI,Service AI,34392
+Jadelle,2024-10-01,Main,Consumption AI,Consumption Excel,37770
+Jadelle,2024-10-01,Main,Consumption AI,Consumption AI,37843
+Jadelle,2024-10-01,Main,Consumption AI,Demographic,46855
+Jadelle,2024-10-01,Main,Consumption AI,Consumption LMIS,NA
+Jadelle,2024-11-01,Main,Consumption AI,Actual Consumption,39655
+Jadelle,2024-11-01,Main,Consumption AI,Service Excel,34392
+Jadelle,2024-11-01,Main,Consumption AI,Service AI,34392
+Jadelle,2024-11-01,Main,Consumption AI,Consumption Excel,37770
+Jadelle,2024-11-01,Main,Consumption AI,Consumption AI,37843
+Jadelle,2024-11-01,Main,Consumption AI,Demographic,46855
+Jadelle,2024-11-01,Main,Consumption AI,Consumption LMIS,NA
+Jadelle,2024-12-01,Main,Consumption AI,Actual Consumption,33483
+Jadelle,2024-12-01,Main,Consumption AI,Service Excel,34392
+Jadelle,2024-12-01,Main,Consumption AI,Service AI,34392
+Jadelle,2024-12-01,Main,Consumption AI,Consumption Excel,37770
+Jadelle,2024-12-01,Main,Consumption AI,Consumption AI,37843
+Jadelle,2024-12-01,Main,Consumption AI,Demographic,46855
+Jadelle,2024-12-01,Main,Consumption AI,Consumption LMIS,NA

@@ -59,13 +59,13 @@ ui <- page_navbar(
   ),
   nav_panel("Forecast Accuracy", forecast_accuracy_tracker_ui("forecast_accuracy_tracker")),
   nav_panel("Acess DHIS2", extract_from_khis_page_ui("extraction_from_dhis2")),
-  tags$head(tags$style(disconnection_notification_style)) # styles.R
+  tags$head(tags$style(disconnection_notification_style))
 )
 
 
 server <- function(input, output, session) {
   # File path to monitor
-  file_path <- "data/historical_fp_data.rds" # Replace with your actual file path
+  file_path <- "data/historical_fp_data.rds"
 
   # Reactive file reader
   file_data <- reactiveFileReader(

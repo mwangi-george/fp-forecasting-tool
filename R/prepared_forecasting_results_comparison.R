@@ -38,7 +38,8 @@ pre_processed_forecasts_page_ui <- function(id) {
           format = "mm/dd/yy",
           separator = " - ",
           width = "100%"
-        ))
+        )),
+        div(style = "flex: 1; margin-top: 30px", downloadButton(ns("download_forecasted_data"), "Download Forecast", class = "btn-primary", style = "width: 100%;")),
       ),
       nav_panel(
         "",
@@ -94,6 +95,17 @@ pre_processed_forecasts_page_server <- function(id, data_to_plot) {
         e_toolbox_feature(
           feature = "saveAsImage"
         )
+    })
+
+    observe({
+        file_name <- glue("{input$analytic_for_service_consumption_comparison}_forecast_for_{input$org_unit_for_service_consumption_comparison}")
+
+        output$download_forecasted_data <- filtered_data() %>%
+          filter(.key == "prediction") %>%
+          select(-c(".model_id",	".model_desc",	".key", ".index")) %>%
+          rename(forecasted_value = .value) %>%
+          relocate(period, .after = org_unit) %>%
+          download_data_as_csv(file_name)
     })
 
     output$model_used_for_consumption <- renderText({

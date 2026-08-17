@@ -276,6 +276,7 @@ run_anomaly_detection <- memoise(
               anomalize(period, value, .max_anomalies = 0.3, .iqr_alpha = 0.10)
           }
         )
+        glimpse(anomalized_data %>% head(10))
 
         return(list(success = TRUE, res = anomalized_data))
       },
@@ -413,16 +414,19 @@ generate_reactable_columns <- function(data, columns_to_format = NULL) {
   return(column_definitions)
 }
 
-read_forecasts_data_from_drive <- function() {
-  path <- "https://docs.google.com/spreadsheets/d/14h3_V3UZS8HrS5jjmN_SzjBjXwAvEtyKR7IQmTIioj8/"
+read_data_from_google_sheets <- function(
+    sheet_url = "https://docs.google.com/spreadsheets/d/14h3_V3UZS8HrS5jjmN_SzjBjXwAvEtyKR7IQmTIioj8/",
+    sheet_name,
+    output_local_path
+    ) {
   tryCatch(
     expr = {
         cli_alert_info("Importing forecast from drive...")
-      ss <- googledrive::drive_get(path)
-      forecasts <- googlesheets4::read_sheet(ss, sheet = "master")
+      ss <- googledrive::drive_get(sheet_url)
+      forecasts <- googlesheets4::read_sheet(ss, sheet = sheet_name)
 
       cli_alert_info("Saving data to disk...")
-      saveRDS(forecasts, here::here("data/final_forecasts_drive.rds"))
+      saveRDS(forecasts, here::here(output_local_path))
     },
     error = function(e) {
         cli_alert_danger(e$message)
@@ -653,19 +657,19 @@ generate_text_for_converted_service_products <- function(input, output) {
 
   if (product == "COCs") {
     output$text_for_converted_service_products <- renderText({
-      glue("A factor of 2.2 has been applied to to {product}'s Service data")
+      glue("A factor of 1.25 per month has been applied to to {product}'s Service data.")
     })
   } else if (product %in% c("Female Condoms", "Male Condoms")) {
     output$text_for_converted_service_products <- renderText({
-      glue("A factor of 10 has been applied to to {product}'s Service data")
+      glue("A factor of 10 per month has been applied to to {product}'s Service data")
     })
   } else if (product == "POPs") {
     output$text_for_converted_service_products <- renderText({
-      glue("A factor of 1.5 has been applied to to {product}'s Service data")
+      glue("A factor of 0.5 per month has been applied to to {product}'s Service data")
     })
-  } else {
+  }  else {
     output$text_for_converted_service_products <- renderText({
-      NULL
+      glue("A factor of 1 per month has been applied to to {product}'s Service data")
     })
   }
 }
@@ -864,48 +868,336 @@ read_ai_forecast_df <- function() {
   return(forecast_df)
 }
 
-
-calculate_accuracy_metrics <- function(data) {
+calculate_accuracy_metrics <- function(data, forecast_col, actual_col = "actual") {
   tryCatch(
-    expr = {
-        # Extract forecast and actual values from the dataframe
-        forecast <- data$forecast
-        actual <- data$actual
+    {
+      forecast <- data[[forecast_col]]
+      actual   <- data[[actual_col]]
 
-        # Mean Absolute Error (MAE)
-        mae <- mean(abs(actual - forecast))
+      # Keep only finite pairs
+      ok <- is.finite(actual) & is.finite(forecast)
+      actual <- actual[ok]
+      forecast <- forecast[ok]
 
-        # Mean Absolute Percentage Error (MAPE)
-        mape <- mean(abs((actual - forecast) / actual)) * 100
+      # MAE
+      mae <- mean(abs(actual - forecast), na.rm = TRUE)
 
-        # Mean Absolute Scaled Error (MASE)
-        mase <- mean(abs(actual - forecast)) / mean(abs(diff(actual)))
+      # MAPE (ignore actual == 0 to avoid Inf)
+      nonzero <- actual != 0
+      mape <- mean(abs((actual[nonzero] - forecast[nonzero]) / actual[nonzero]), na.rm = TRUE) * 100
 
-        # Symmetric Mean Absolute Percentage Error (SMAPE)
-        smape <- 2 * mean(abs(actual - forecast) / (abs(actual) + abs(forecast))) * 100
+      # SMAPE
+      denom <- abs(actual) + abs(forecast)
+      nonzero_denom <- denom != 0
+      smape <- 2 * mean(abs(actual[nonzero_denom] - forecast[nonzero_denom]) / denom[nonzero_denom], na.rm = TRUE) * 100
 
-        # Root Mean Squared Error (RMSE)
-        rmse <- sqrt(mean((actual - forecast)^2))
+      # RMSE
+      rmse <- sqrt(mean((actual - forecast)^2, na.rm = TRUE))
 
-        # R-squared (Coefficient of determination)
-        rsq <- 1 - sum((actual - forecast)^2) / sum((actual - mean(actual))^2)
+      # MASE (optional): only if you have enough points and variability
+      mase <- NA_real_
+      if (length(actual) > 1) {
+        scale_term <- mean(abs(diff(actual)), na.rm = TRUE)
+        if (is.finite(scale_term) && scale_term != 0) {
+          mase <- mean(abs(actual - forecast), na.rm = TRUE) / scale_term
+        }
+      }
 
-        # Return a named list of metrics
-        metrics <- list(
-            MAE = round(mae, 1),
-            MAPE = round(mape, 1),
-            MASE = round(mase, 1),
-            SMAPE = round(smape, 1),
-            RMSE = round(rmse, 1),
-            Rsquared = round(rsq, 1)
-        )
-
-        return(metrics)
+      tibble::tibble(
+        MAE = round(mae, 1),
+        MAPE = round(mape, 1),
+        MASE = round(mase, 1),
+        SMAPE = round(smape, 1),
+        RMSE = round(rmse, 1)
+      )
     },
     error = function(e) {
-      cli_alert_danger(e$message)
+      # return a useful object instead of failing silently
+      tibble::tibble(
+        MAE = NA_real_, MAPE = NA_real_, MASE = NA_real_, SMAPE = NA_real_, RMSE = NA_real_,
+        error = e$message
+      )
     }
   )
+}
+
+
+calculate_forecast_accuracy_all_methods <- function(
+  dataset,
+  actual_method = "Actual Consumption",
+  id_cols = c("product", "period", "forecast_type", "adopted"),
+  method_col = "method",
+  value_col = "value"
+) {
+  suppressPackageStartupMessages({
+    library(dplyr)
+    library(rlang)
+    library(tidyr)
+    library(tibble)
+  })
+
+  # --- Validate expected columns (tidy-friendly error messages) ---
+  required_cols <- c(id_cols, method_col, value_col)
+  missing_cols <- setdiff(required_cols, names(dataset))
+  if (length(missing_cols) > 0) {
+    rlang::abort(paste0(
+      "Missing required column(s): ",
+      paste(missing_cols, collapse = ", ")
+    ))
+  }
+
+  method_sym <- rlang::sym(method_col)
+  value_sym  <- rlang::sym(value_col)
+
+  # --- Prepare Actual and Forecast datasets (long format, no pivot_wider) ---
+  actual_df <- dataset %>%
+    filter(!!method_sym == actual_method) %>%
+    select(all_of(id_cols), actual = !!value_sym)
+
+  forecast_df <- dataset %>%
+    filter(!!method_sym != actual_method) %>%
+    transmute(
+      !!!rlang::syms(id_cols),
+      Method = as.character(!!method_sym),
+      forecast = !!value_sym
+    )
+
+  paired_df <- forecast_df %>%
+    left_join(actual_df, by = id_cols) %>%
+    filter(is.finite(actual), is.finite(forecast))
+
+  if (nrow(paired_df) == 0) {
+    return(tibble(
+      Method = character(),
+      n = integer(),
+      MAE = numeric(),
+      MAPE = numeric(),
+      SMAPE = numeric(),
+      RMSE = numeric(),
+      Bias = numeric()
+    ))
+  }
+
+  # Group at the "series" level: keep id cols except period, plus Method
+  group_cols <- c(setdiff(id_cols, "period"), "Method")
+
+  paired_df %>%
+    group_by(across(all_of(group_cols))) %>%
+    summarise(
+      n = n(),
+
+      MAE = mean(abs(actual - forecast), na.rm = TRUE),
+
+      # MAPE: ignore rows where actual == 0 (avoids Inf)
+      MAPE = 100 * mean(
+        abs((actual - forecast) / actual)[actual != 0],
+        na.rm = TRUE
+      ),
+
+      # SMAPE: ignore rows where denominator == 0
+      SMAPE = 200 * mean(
+        abs(actual - forecast) / (abs(actual) + abs(forecast))[ (abs(actual) + abs(forecast)) != 0 ],
+        na.rm = TRUE
+      ),
+
+      RMSE = sqrt(mean((actual - forecast)^2, na.rm = TRUE)),
+
+      Bias = mean(forecast - actual, na.rm = TRUE),
+
+      .groups = "drop"
+    ) %>%
+    mutate(
+      across(c(MAE, MAPE, SMAPE, RMSE, Bias), ~ round(.x, 2))
+    ) %>%
+    arrange(MAPE) %>%
+    relocate(Method)
+}
+
+make_forecast_accuracy_gt_table <- function(metrics_df) {
+  suppressPackageStartupMessages({
+    library(dplyr)
+    library(gt)
+    library(scales)
+  })
+
+  # --- Basic validation (tidy-friendly) ---
+  required_cols <- c("Method", "adopted")
+  missing_cols <- setdiff(required_cols, names(metrics_df))
+  if (length(missing_cols) > 0) {
+    stop("Missing required column(s): ", paste(missing_cols, collapse = ", "))
+  }
+
+  # Detect optional grouping columns
+  has_product <- "product" %in% names(metrics_df)
+  has_type <- "forecast_type" %in% names(metrics_df)
+
+  # Add a clean "Adopted" marker to the Method label
+  table_df <- metrics_df %>%
+    mutate(
+      Method_display = if_else(
+        !is.na(adopted) & Method == adopted,
+        paste0(Method, "  ", "✓ Adopted"),
+        Method
+      )
+    )
+
+  # Choose columns to show (keep context columns if present)
+  display_cols <- c(
+    intersect(c("product", "forecast_type"), names(table_df)),
+    "Method_display",
+    intersect(c("n", "MAE", "MAPE", "SMAPE", "RMSE", "Bias"), names(table_df))
+  )
+
+  table_df <- table_df %>% select(all_of(display_cols))
+
+  # Build gt
+  g <- table_df %>%
+    select(-c(forecast_type, SMAPE)) |>
+    gt(
+      groupname_col = if (has_product) "product" else NULL,
+      rowname_col = "Method_display"
+    ) %>%
+    # If forecast_type exists, show it as a secondary grouping label via a stubhead note
+    tab_header(
+      title = md("**Forecast Accuracy Metrics**"),
+      subtitle = md("Comparison of observed consumption against forecasting methods.")
+    ) %>%
+    cols_label(
+      Method_display = "Method",
+      n = "N",
+      MAE = "MAE",
+      MAPE = "MAPE (%)",
+      RMSE = "RMSE",
+      Bias = "Bias"
+    ) %>%
+    # Numeric formatting
+    fmt_number(
+      columns = intersect(c("MAE", "MAPE", "RMSE", "Bias"), names(table_df)),
+      decimals = 2
+    ) %>%
+    fmt_number(
+      columns = intersect(c("n"), names(table_df)),
+      decimals = 0,
+      use_seps = TRUE
+    ) %>%
+    # Alignments
+    cols_align(align = "left", columns = "Method_display") %>%
+    cols_align(align = "right", columns = intersect(c("n", "MAE", "MAPE", "RMSE", "Bias"), names(table_df))) %>%
+    # Clean theme-like options
+    opt_row_striping() %>%
+    tab_options(
+      table.font.size = px(13),
+      heading.title.font.size = px(18),
+      heading.subtitle.font.size = px(12),
+      row_group.font.weight = "600",
+      data_row.padding = px(10),
+      table.border.top.style = "solid",
+      table.border.bottom.style = "solid",
+      column_labels.font.weight = "600"
+    )
+
+  # --- Highlight best-performing row (lowest MAPE) ---
+  # Assumes table_df is already sorted by MAPE (ascending) within each product.
+  # Highlight the first row of each product group using a "success" green.
+    # ---- Build row flags for styling (per product if present, otherwise global) ----
+    style_df <- metrics_df %>%
+      # ensure we're sorting like the table (lowest MAPE first)
+      arrange(across(intersect(c("product", "forecast_type"), names(metrics_df))), MAPE) %>%
+      mutate(
+        Method_display = if_else(
+          !is.na(adopted) & Method == adopted,
+          paste0(Method, "  ", "✓ Adopted"),
+          Method
+        )
+      )
+
+    if ("product" %in% names(style_df)) {
+      best_rows <- style_df %>%
+        group_by(product) %>%
+        slice_min(order_by = MAPE, n = 1, with_ties = FALSE) %>%
+        ungroup() %>%
+        pull(Method_display)
+
+      adopted_rows <- style_df %>%
+        filter(!is.na(adopted) & Method == adopted) %>%
+        pull(Method_display)
+
+    } else {
+      best_rows <- style_df %>%
+        slice_min(order_by = MAPE, n = 1, with_ties = FALSE) %>%
+        pull(Method_display)
+
+      adopted_rows <- style_df %>%
+        filter(!is.na(adopted) & Method == adopted) %>%
+        pull(Method_display)
+    }
+
+    overlap_rows <- intersect(best_rows, adopted_rows)
+    best_only_rows <- setdiff(best_rows, overlap_rows)
+    adopted_only_rows <- setdiff(adopted_rows, overlap_rows)
+
+    # ---- 1) Best method highlight (soft green) ----
+    g <- g %>%
+      tab_style(
+        style = list(
+          cell_fill(color = "#E8F5E9"),
+          cell_text(weight = "700"),
+          cell_borders(sides = "left", color = "#2E7D32", weight = px(4))
+        ),
+        locations = cells_body(rows = Method_display %in% best_only_rows)
+      )
+
+    # ---- 2) Adopted method highlight (soft amber) ----
+    g <- g %>%
+      tab_style(
+        style = list(
+          cell_fill(color = "#FFF4CC"),
+          cell_text(weight = "700"),
+          cell_borders(sides = "left", color = "#B26A00", weight = px(4))
+        ),
+        locations = cells_body(rows = Method_display %in% adopted_only_rows)
+      )
+
+    # ---- 3) If Best == Adopted, use a special combined highlight (teal) ----
+    if (length(overlap_rows) > 0) {
+      g <- g %>%
+        tab_style(
+          style = list(
+            cell_fill(color = "#E0F7FA"),
+            cell_text(weight = "800"),
+            cell_borders(sides = "left", color = "#00796B", weight = px(5))
+          ),
+          locations = cells_body(rows = Method_display %in% overlap_rows)
+        )
+    }
+
+    legend_html <- "
+      <div style='display:flex; gap:14px; align-items:center; flex-wrap:wrap;'>
+        <span style='display:inline-flex; align-items:center; gap:6px;'>
+          <span style='width:12px; height:12px; background:#E8F5E9; border-left:4px solid #2E7D32; display:inline-block;'></span>
+          <span><b>Best</b> (lowest MAPE)</span>
+        </span>
+
+        <span style='display:inline-flex; align-items:center; gap:6px;'>
+          <span style='width:12px; height:12px; background:#FFF4CC; border-left:4px solid #B26A00; display:inline-block;'></span>
+          <span><b>Adopted</b> method</span>
+        </span>
+
+        <span style='display:inline-flex; align-items:center; gap:6px;'>
+          <span style='width:12px; height:12px; background:#E0F7FA; border-left:4px solid #00796B; display:inline-block;'></span>
+          <span><b>Adopted & Best</b></span>
+        </span>
+      </div>
+      "
+
+
+    # Optional: if forecast_type exists, add it as a subtle footnote cue
+    # Optional: if forecast_type exists, add it as a subtle footnote cue
+    g <- g %>%
+      tab_source_note(source_note = html(legend_html)) |>
+      tab_source_note(source_note = md("*Currently identifying the best method using lowest MAPE*"))
+
+    g
 }
 
 
@@ -966,4 +1258,130 @@ update_forecast_accuracy_dataset <- function() {
       notify_client("Extraction error", e$message)
     }
   )
+}
+
+
+generate_forecast_accuracy_chart <- function(data) {
+  method_color_map <- c(
+    "Actual Consumption" = "#4E79A7",
+    "Consumption LMIS"   = "#F28E2B",
+    "Service AI"         = "#59A14F",
+    "Consumption AI"     = "#E15759",
+    "Demographic"        = "#B07AA1",
+    "Service Excel"      = "#9C755F",
+    "Consumption Excel"  = "pink"
+  )
+
+  # Ensure method is character -> then refactor with the order you want
+  data <- data |>
+    dplyr::mutate(
+      method = as.character(method),
+      method = factor(
+        method,
+        levels = c("actual_consumption", setdiff(sort(unique(method)), "actual_consumption"))
+      )
+    )
+
+  series_levels <- levels(data$method)
+
+  # IMPORTANT: only keep colors for series that exist, in the same order
+  colors_in_order <- unname(method_color_map[series_levels])
+
+  # Fallback colors if any series aren't in the map (prevents NA -> default palette)
+  fallback <- c("#76B7B2", "#EDC948", "#FF9DA7", "#BAB0AC", "#1F77B4", "#2CA02C")
+  na_idx <- which(is.na(colors_in_order))
+  if (length(na_idx) > 0) {
+    colors_in_order[na_idx] <- rep(fallback, length.out = length(na_idx))
+  }
+
+  n_series <- length(series_levels)
+
+  stroke_width <- c(4, rep(2, max(0, n_series - 1)))
+  dash_array   <- c(0, rep(6, max(0, n_series - 1)))
+
+  apex(
+    data = data,
+    type = "line", # Apex uses line; "spline" isn't always consistent across contexts
+    mapping = aes(x = period, y = value, group = method)
+  ) %>%
+    # Use ordered vector (most reliable in Shiny)
+    ax_colors(as.list(colors_in_order)) %>%
+    ax_stroke(width = stroke_width, dashArray = dash_array) %>%
+    ax_markers(size = 5) %>%
+    ax_legend(position = "bottom") %>%
+    ax_grid(
+      xaxis = list(lines = list(show = FALSE)),
+      yaxis = list(lines = list(show = FALSE))
+    ) %>%
+    ax_yaxis(
+      title = list(text = ""),
+      labels = list(
+        formatter = JS("function (val) { return val.toLocaleString(); }")
+      )
+    ) %>%
+    ax_tooltip(shared = TRUE, y = list(formatter = format_num(","))) %>%
+    ax_title(("Actual Vs Forecasts")) %>%
+    ax_subtitle("Comparison of actual consumption against forecasting approaches over time.")
+}
+
+get_fy_month_dates <- function(financial_years) {
+  # Accepts a character vector like:
+  # c("FY 2024/25", "FY 2025/26") or c("FY 2024/26")
+  # Returns a Date vector from the earliest FY start (Jul) to the latest FY end (Jun)
+
+  # Helper: parse one FY string -> c(start_year, end_year)
+  parse_one_fy <- function(fy) {
+    fy_clean <- sub("^FY\\s*", "", fy)
+    parts <- strsplit(fy_clean, "/")[[1]]
+
+    start_year <- as.numeric(parts[1])
+    end_part <- parts[2]
+
+    end_year <- if (nchar(end_part) == 2) {
+      # e.g., 2024 + "26" -> 2026 (assumes same century as start_year)
+      as.numeric(paste0(substr(start_year, 1, 2), end_part))
+    } else {
+      as.numeric(end_part)
+    }
+
+    c(start_year = start_year, end_year = end_year)
+  }
+
+  parsed <- lapply(financial_years, parse_one_fy)
+
+  start_years <- vapply(parsed, function(x) x["start_year"], numeric(1))
+  end_years   <- vapply(parsed, function(x) x["end_year"], numeric(1))
+
+  start_date <- as.Date(paste0(min(start_years), "-07-01"))
+  end_date   <- as.Date(paste0(max(end_years), "-06-01"))
+
+  seq.Date(from = start_date, to = end_date, by = "month")
+}
+
+add_financial_year <- function(data, period_col = "period") {
+  suppressPackageStartupMessages({
+    library(dplyr)
+    library(lubridate)
+    library(rlang)
+  })
+
+  period_sym <- sym(period_col)
+
+  data %>%
+    mutate(
+      year_val  = year(!!period_sym),
+      month_val = month(!!period_sym),
+
+      # Financial year starts in July
+      fy_start = if_else(month_val >= 7, year_val, year_val - 1),
+      fy_end   = fy_start + 1,
+
+      financial_year = paste0(
+        "FY ",
+        fy_start,
+        "/",
+        substr(fy_end, 3, 4)
+      )
+    ) %>%
+    select(-year_val, -month_val, -fy_start, -fy_end)
 }

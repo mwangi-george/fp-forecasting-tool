@@ -1,17 +1,20 @@
 pacman::p_load(
   tidyr, dplyr, purrr, stringr, bslib, shiny, shinyjs, janitor, shinyWidgets, glue, plotly, timetk, shinycssloaders,
-  shinyalert, bsicons, DT, prophet, fs, httr, memoise, tibble, lubridate, thematic, reactable, echarts4r, readxl, here, cli
+  shinyalert, bsicons, DT, prophet, fs, httr, memoise, tibble, lubridate, thematic, reactable, echarts4r, readxl, here, cli,
+  apexcharter, gt
 )
 
-# Import required datasets
 
-historical_fp_data <- readRDS("data/pinned_df.rds") |>
+# read_data_from_google_sheets(sheet_name = "fp_raw_data", output_local_path = "data/pinned_df_v1.rds")
+
+# Import required datasets
+historical_fp_data <- readRDS("data/pinned_df_v1.rds") |>
   rename(analytic = analytic_name) |>
   # deselect unnecessary columns
   select(-contains(c("outlier", "year", "median_value")))
-
-# historical_fp_data |>
-#   saveRDS("data/historical_fp_data.rds")
+#
+historical_fp_data |>
+  saveRDS("data/historical_fp_data.rds")
 
 
 forecast_results <- readRDS("data/final_forecasts_drive.rds") |>
@@ -45,6 +48,27 @@ forecast_results_end_date <- floor_date(today(), unit = "month") + 360
 
 # Forecast vs Actual Data
 forecast_actual_df <- readRDS("data/forecast_vs_actual_data.rds")
+
+
+fa_df_clean <- read.csv('data/forecasted_vs_actual_values_per_method.csv') |>
+  mutate(period = ymd(period))
+
+# max actual period
+actual_period_max <- fa_df_clean |>
+    filter(!is.na(value), method == "Actual Consumption", ) |>
+    filter(period == max(period)) |>
+    distinct(period) |>
+    pull(period)
+
+fa_df_clean <- fa_df_clean |>
+  filter(period <= actual_period_max)
+
+
+financial_years <- c(
+  "FY 2023/24",
+  "FY 2024/25",
+  "FY 2025/26"
+)
 
 
 # TODO

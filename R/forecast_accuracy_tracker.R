@@ -1,53 +1,69 @@
 # UI function
+
 forecast_accuracy_tracker_ui <- function(id) {
   ns <- NS(id)
 
   # UI elements
   tagList(
+    div(
+      style = "display: flex; gap: 10px; padding: 5px 20px 5px 20px;",
+      div(style = "flex: 1;", pickerInput(
+        ns("analytics_to_analyze"),
+        label = "Choose Product",
+        choices = distinct_analytics,
+        selected = "Jadelle",
+        multiple = FALSE,
+        width = "100%",
+        options = list(`live-search` = TRUE),
+      )),
+      div(style = "flex: 1;", pickerInput(
+        ns("forecast_series_type"),
+        label = "Choose Forecast Type",
+        choices = c("Main", "Review"),
+        selected = "Main",
+        multiple = FALSE,
+        width = "100%",
+        options = list(`live-search` = TRUE),
+      )),
+      div(style = "flex: 1;", pickerInput(
+        ns("fy_year"),
+        label = "Choose Year",
+        choices = financial_years,
+        selected = financial_years[1],
+        multiple = TRUE,
+        width = "100%",
+        options = list(
+          `live-search` = TRUE,
+          `actions-box` = TRUE,
+          `selected-text-format`= "count"
+          )
+      )),
+      div(style = "flex: 1;", pickerInput(
+        ns("month"),
+        label = "Choose Month",
+        choices = month.name,
+        selected = month.name,
+        multiple = TRUE,
+        width = "100%",
+        options = list(
+          `live-search` = TRUE,
+          `actions-box` = TRUE,
+          `selected-text-format`= "count"
+          )
+      ))
+    ),
     layout_columns(
-      col_widths = c(3, 9),
+      col_widths = c(7, 5),
       card(
-        card_header("Filters"),
+        card_header(textOutput(ns("card_header_text"))),
         card_body(
-          pickerInput(
-            ns("analytics_to_analyze"),
-            label = "Choose Product",
-            choices = distinct_analytics,
-            selected = "EC Pills",
-            multiple = FALSE,
-            width = "100%",
-            options = list(`live-search` = TRUE),
-          ),
-          layout_column_wrap(
-            max_height = "400px",
-            value_box(
-              title = "MAPE",
-              value = textOutput(ns("mape_value")),
-              theme = "success",
-              max_height = "90px",
-            ),
-            value_box(
-              title = "RMSE",
-              value = textOutput(ns("rmse_value")),
-              theme = "success",
-              max_height = "90px"
-            ),
-            value_box(
-              title = "MAE",
-              value = textOutput(ns("mae_value")),
-              theme = "success",
-              max_height = "90px"
-            )
-          ),
-          p(tags$em("Note: Actual consumption data retrieved from KHIS")),
-          # actionButton(ns("update_actual_data"), "Refresh Actual Data", class = "btn-primary", style = "width: 100%;"),
+          apexchartOutput(ns("forecast_accuracy_plot")),
         )
       ),
       card(
-        card_header("Forecasting Accuracy Results"),
+        card_header("Metrics"),
         card_body(
-          echarts4rOutput(ns("forecast_accuracy_plot")),
-          textOutput(ns("adopted_method_text")),
+          gt_output(ns("forecast_accuracy_tbl"))
         )
       )
     )
@@ -68,102 +84,50 @@ forecast_accuracy_tracker_server <- function(id) {
 
     observe({
       input$analytics_to_analyze
+
+      output$card_header_text <- renderText({
+        glue("Product - {input$analytics_to_analyze}")
+      })
     })
 
     filtered_df <- reactive({
-      forecast_actual_df %>%
-        filter(analytic == input$analytics_to_analyze) %>%
+      filtered_dates <- get_fy_month_dates(c(input$fy_year))
+
+      fa_df_clean %>%
+        filter(
+          product == input$analytics_to_analyze,
+          forecast_type == input$forecast_series_type,
+          period %in% filtered_dates,
+          month(period, label = TRUE, abbr = FALSE) %in% c(input$month)
+        ) %>%
         arrange(period)
     })
 
-    output$forecast_accuracy_plot <- renderEcharts4r({
-      # Calculate min and max values for dynamic Y-axis scaling
-      y_min <- min(filtered_df()$value, na.rm = TRUE)
-      y_max <- max(filtered_df()$value, na.rm = TRUE)
-
-      filtered_df() %>%
-        dplyr::group_by(.type) %>%
-        e_charts_("period") %>%
-        e_line_("value", smooth = TRUE, draw = FALSE) %>%
-        e_axis_labels(x = "Date", y = "Value") %>%
-        e_theme("roma") %>%
-        e_legend(right = 100) %>% # move legend to the right
-        e_tooltip(trigger = "axis") %>%
-        e_toolbox() %>%
-        e_toolbox_feature(feature = "dataZoom") %>%
-        e_toolbox_feature(feature = "saveAsImage") %>%
-        e_title(text = glue("Comparison between Actual & Forecast Data for {input$analytics_to_analyze}")) %>%
-        e_y_axis(min = round(y_min * 0.9), max = round(y_max * 1.1))
-    })
-
-    output$adopted_method_text <- renderText({
-      method <- filtered_df() %>%
-        select(method) %>%
-        filter(method != "Actual Consumption") %>%
-        distinct() %>%
-        pull(method)
-
-      glue("{input$analytics_to_analyze} forecast was generated using the {method} approach")
-    })
-
-    observe({
-      get_metrics_list <- memoise(
-        function(dataset) {
-        # define a default list to return incase of error
-        default_output <- list(
-          MAE = "N/A", MAPE = "N/A",
-          MASE = "N/A", SMAPE = "N/A",
-          RMSE = "N/A", Rsquared = "N/A"
-        )
-        tryCatch(
-          expr = {
-            df <- dataset %>%
-              select(-method) %>%
-              pivot_wider(names_from = .type, values_from = value)
-
-            if (!"forecast" %in% colnames(df)) {
-              cli_alert("Invalid data")
-              notify_client("Forecasted data not available!")
-              return(default_output)
-            }
-
-            if (!"actual" %in% colnames(df)) {
-              cli_alert("Invalid data")
-              notify_client("Actula data not available!")
-              return(default_output)
-            }
-
-            metrics <- df %>%
-              filter(!is.na(forecast), !is.na(actual)) %>%
-              calculate_accuracy_metrics()
-
-            cli_alert(metrics)
-            return(metrics)
-          },
-          error = function(e) {
-            cli_alert_danger("Error calculating accuracy metrics")
-            return(default_output)
-          }
-        )
-      })
-
-      metrics_list <- get_metrics_list(filtered_df())
-
-      output$mape_value <- renderText({
-        if (metrics_list$MAPE == "N/A") {
-          "N/A"
-        } else {
-          paste0(metrics_list$MAPE, "%")
+    output$forecast_accuracy_plot <- renderApexchart({
+      tryCatch(
+        expr = {
+          df <- filtered_df()
+          print(unique(df$method))
+          print(levels(df$method))
+          generate_forecast_accuracy_chart(df)
+        },
+        error = function(e) {
+          NULL
         }
-      })
-
-      output$rmse_value <- renderText({
-        format(metrics_list$RMSE, big.mark = ",")
-      })
-
-      output$mae_value <- renderText({
-        format(metrics_list$MAE, big.mark = ",")
-      })
+      )
     })
+
+    output$forecast_accuracy_tbl <- render_gt({
+      tryCatch(
+        expr = {
+          metrics <- calculate_forecast_accuracy_all_methods(filtered_df())
+          make_forecast_accuracy_gt_table(metrics)
+        },
+        error = function(e) {
+          NULL
+        }
+      )
+    })
+
   })
 }
